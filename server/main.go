@@ -5,7 +5,11 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 )
+
+// Variables
+var AVAILABLE_CMDS = [...]string{"CMD1", "CMD2", "CMD3", "CMD4"}
 
 /**
 Handles the connexion of a new client
@@ -31,6 +35,10 @@ func handleClientMessage(msg string) string {
 	default:
 		return "01> Unknown command"
 	}
+}
+
+func parseMessage(msg string) {
+	strings.Split(msg, " ")
 }
 
 /**
