@@ -2,22 +2,36 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"log"
 	"net"
 	"strings"
+	"strconv"
+	"hotel/logic"
 )
-
-// Variables
-var AVAILABLE_CMDS = [...]string{"CMD1", "CMD2", "CMD3", "CMD4"}
 
 /**
 Handles the connexion of a new client
  */
 func handleNewSocket(socket net.Conn) {
 	input := bufio.NewScanner(socket)
-	for input.Scan() { // handleConn <- netcat client
-		fmt.Fprintln(socket, handleClientMessage(input.Text()))
+
+	// Waits for client input and responds
+	for input.Scan() {
+		// Handles the client command
+		result, err := handleClientMessage(input.Text())
+
+		// Displays error message
+		if err != nil {
+			fmt.Fprintln(socket, err.Error())
+		} else {
+			// Checks the STOP command
+			if result == "STOP" { break }
+
+			// No STOP, returns the result
+			fmt.Fprintln(socket, result)
+		}
 	}
 
 	socket.Close()
@@ -26,14 +40,40 @@ func handleNewSocket(socket net.Conn) {
 /**
 Handles a received client message
  */
-func handleClientMessage(msg string) string {
-	switch msg {
+func handleClientMessage(msg string) (string, error) {
+	// Splits the command string
+	args := strings.Split(msg, " ")
+
+	if len(args) == 0 { return "", errors.New("ERR Aucune commande spécifiée") }
+
+	// Identifies the command
+	switch args[0] {
 	case "BOOK":
-		return "00> You booked a room !"
-	case "LIST":
-		return "00> The rooms 0, 1, 2 and 3 are available"
+		// Checks number of args
+		if len(args) != 4 { return "", errors.New("ERR Arguments manquants BOOK <no chambre> <jour arrivée> <nb nuits>") }
+
+		// Transform args into integers
+		nRoom, roomErr := strconv.Atoi(args[1])
+		day, dayErr := strconv.Atoi(args[2])
+		nbNights, nightErr := strconv.Atoi(args[3])
+
+		if roomErr != nil || dayErr != nil || nightErr != nil {
+			return "", errors.New("ERR Argument invalide")
+		}
+
+		// All arguments valid, tries to book the room
+		ret, err := logic.HOTEL.BookRoom(nRoom, day, nbNights, "Jean")
+		return ret, err
+	case "ROOMS":
+		// All arguments valid, tries to book the room
+		ret, err := logic.HOTEL.GetRoomsList()
+		return ret, err
+	case "FREE":
+		return "OK La chambre x est disponible", nil
+	case "STOP":
+		return "STOP", nil
 	default:
-		return "01> Unknown command"
+		return "ERR Commande inconnue", nil
 	}
 }
 
@@ -47,6 +87,8 @@ Entry point for the server app
 func main() {
 	// Listens on localhost:8000
 	serverSocket, err := net.Listen("tcp", "localhost:8000")
+
+	// Creates the hotel instance
 
 	// Error handle
 	if err != nil {

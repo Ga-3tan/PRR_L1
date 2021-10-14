@@ -1,7 +1,8 @@
 package logic
 
 type Reservation struct {
+	idRoom int
 	client string
-	day uint16
-	nbNights uint16
+	day int
+	nbNights int
 }
