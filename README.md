@@ -50,7 +50,7 @@ ERR votre chambre est déjà réservée
 ```http
 OK
 |1 : OCCUPIED	|
-|2 : FREE		|			
+|2 : FREE	|			
 |3 : YOUR ROOM	|
 ...
 [n° de chambre : disponibilité]
