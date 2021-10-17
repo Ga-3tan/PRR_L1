@@ -18,7 +18,7 @@ BOOK [n° de chambre] [jour] [nb de nuit]
 ##### - lister les disponibilités des chambres :
 
 ```http
-ROOMS
+ROOMS [jour]
 ```
 
 ##### - une chambre disponible pour un séjour précisé :
@@ -42,7 +42,7 @@ OK votre chambre a été réservée
 ```
 
 ```http
-ERR votre chambre est déjà réservée
+ERR cette chambre est déjà réservée à ce moment là
 ```
 
 ##### liste des disponibilités des chambres :
@@ -51,7 +51,7 @@ ERR votre chambre est déjà réservée
 OK
 |1 : OCCUPIED	|
 |2 : FREE		|			
-|3 : YOUR ROOM	|
+|3 : RESERVED	|
 ...
 [n° de chambre : disponibilité]
 END
