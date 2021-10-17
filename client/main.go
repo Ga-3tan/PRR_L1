@@ -1,39 +1,42 @@
 package main
 
 import (
-	"io"
 	"log"
 	"net"
 	"os"
 )
 
+type Test struct {
+	query string
+	response string
+}
+
 /**
 Entry point for the client app
- */
+*/
 func main() {
-	// Connects to the server on localhost:8000
+	// Connects to the hotel on localhost:8000
 	socket, err := net.Dial("tcp", "localhost:8000")
-
-	// Error handle
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer socket.Close()
 
-	// Copies the os input into the created socket
-	endOfComm := make(chan struct{})
-	go func() {
-		io.Copy(os.Stdout, socket)
-		log.Println("done")
-		endOfComm <- struct{}{}
-	}()
+	tests := {Test{query: "", response:""}}
 
-	// Copies the received data from the socket to os input
-	if _, err := io.Copy(socket, os.Stdin); err != nil {
-		log.Fatal(err)
+	_, err = socket.Write([]byte("hello"))
+	if err != nil {
+		println("Write to server failed:", err.Error())
+		os.Exit(1)
+	}
+
+	reply := make([]byte, 1024)
+	_, err = socket.Read(reply)
+	if err != nil {
+		println("Read to server failed:", err.Error())
+		os.Exit(1)
 	}
 
 	// Closes the socket and waits for goroutine to finish
 	socket.Close()
-	<-endOfComm
 }
