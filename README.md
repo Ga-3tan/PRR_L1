@@ -7,64 +7,68 @@
 ## Rapport
 ### Protocole
 
-#### client :
+#### Client :
 
-##### - réserver une chambre :
+##### - Réserver une chambre :
 
 ```http
 BOOK [n° de chambre] [jour] [nb de nuit] 
 ```
 
-##### - lister les disponibilités des chambres :
+##### - Lister les disponibilités des chambres :
 
 ```http
 ROOMS [jour]
 ```
 
-##### - une chambre disponible pour un séjour précisé :
+##### - Une chambre disponible pour un séjour précisé :
 
 ```http
 FREE [jour] [nb de nuit]
 ```
 
-##### - quitter le service :
+##### - Quitter le service :
 
 ```http
 STOP
 ```
 
-#### serveur :
+#### Serveur :
 
-##### réponse à une réservation :
+##### Réponse à une réservation :
 
 ```http
+>> BOOK 5 2 3
 OK votre chambre a été réservée
 ```
 
 ```http
-ERR cette chambre est déjà réservée à ce moment là
+>> BOOK 1 2 3
+ERR votre chambre est déjà réservée
 ```
 
-##### liste des disponibilités des chambres :
+##### Liste des disponibilités des chambres :
 
 ```http
-OK
-|1 : OCCUPIED	|
-|2 : FREE		|			
-|3 : RESERVED	|
-...
-[n° de chambre : disponibilité]
+>> ROOMS 7
+| Chambre: 1, Status: OCCUPE
+| Chambre: 2, Status: LIBRE
+| Chambre: 3, Status: LIBRE
+| Chambre: 4, Status: LIBRE
+| Chambre: 5, Status: LIBRE
+| Chambre: 6, Status: LIBRE
+| Chambre: 7, Status: LIBRE
+| Chambre: 8, Status: LIBRE
+| Chambre: 9, Status: LIBRE
+| Chambre: 10, Status: LIBRE
 END
 ```
 
-##### réponse à une demande de chambre pour un séjour :
+##### Réponse à une demande de chambre pour un séjour :
 
 ```http
-OK chambre [n° chambre] disponible
-```
-
-```http
-ERR aucunes chambres disponibles
+>> FREE 5 2
+OK chambre 1 disponible
 ```
 
 ## License
