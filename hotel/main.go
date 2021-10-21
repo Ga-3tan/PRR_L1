@@ -31,18 +31,7 @@ func main() {
 
 	if err != nil {
 		log.Fatal("Aucun fichier de configuration hotel.conf trouvé : " + err.Error())
-	}
-
-	// Splits the config instructions
-	instructions := strings.Split(string(conf), "\n")
-	for _, i := range instructions {
-
-	}
-	fmt.Print(string(conf))
-
-	maxDays := 0
-	maxRooms := 0
-	debugMode := false*/
+	}*/
 
 	// Creates the hotel
 	var hotel = logic.Hotel{Reservations: make(map[int][]logic.Reservation), MaxDays: config.MAX_DAYS, MaxRooms: config.MAX_ROOMS}
