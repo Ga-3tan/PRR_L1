@@ -46,7 +46,7 @@ func CommandHandler(hotel *logic.Hotel, cmdChan chan Command) {
 	}
 }
 
-// ParseCommand Parses a textual command
+// ParseCommand Parses a textual command into a Command type
 func ParseCommand(msg string, clientName string) (Command, error) {
 	// Splits the command string
 	args := strings.Split(msg, " ")
