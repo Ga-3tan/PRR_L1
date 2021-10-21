@@ -14,10 +14,10 @@ import (
 func CommandHandler(hotel *logic.Hotel, cmdChan chan Command) {
 	// Checks if in debug mode
 	if config.DEBUG != 0 {
-		// Sleeps for 5 seconds
-		log.Println("DEBUG Server started in debug mode, now sleeping for 20 seconds ...")
-		time.Sleep(20 * time.Second)
-		log.Println("DEBUG 20 seconds sleep done, checking for incoming requests")
+		// Sleeps for n seconds
+		log.Println("DEBUG Server started in debug mode, now sleeping for " + strconv.Itoa(config.DEBUG_SLEEP) + " seconds ...")
+		time.Sleep(config.DEBUG_SLEEP * time.Second)
+		log.Println("DEBUG " + strconv.Itoa(config.DEBUG_SLEEP) + " seconds sleep done, checking for incoming requests")
 	}
 
 	for newCmd := range cmdChan {
