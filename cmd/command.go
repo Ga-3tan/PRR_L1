@@ -1,6 +1,8 @@
 package cmd
 
-import "hotel/logic"
+import (
+	"hotel/hotel/logic"
+)
 
 type Command struct {
 	Cmd         	CommandType

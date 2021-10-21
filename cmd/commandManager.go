@@ -2,24 +2,39 @@ package cmd
 
 import (
 	"errors"
-	"hotel/logic"
+	"hotel/hotel/config"
+	"hotel/hotel/logic"
+	"log"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // CommandHandler Handles concurrency and executes the given commands
 func CommandHandler(hotel *logic.Hotel, cmdChan chan Command) {
+	// Checks if in debug mode
+	if config.DEBUG != 0 {
+		// Sleeps for 5 seconds
+		log.Println("DEBUG Server started in debug mode, now sleeping for 20 seconds ...")
+		time.Sleep(20 * time.Second)
+		log.Println("DEBUG 20 seconds sleep done, checking for incoming requests")
+	}
+
 	for newCmd := range cmdChan {
 		var res string
 		var err error
 		switch newCmd.Cmd {
 		case BOOK:
+			log.Println("LOG BOOK command received from " + newCmd.Reservation.Client)
 			res, err = hotel.BookRoom(newCmd.Reservation.IdRoom, newCmd.Reservation.Day, newCmd.Reservation.NbNights, newCmd.Reservation.Client)
 		case ROOMS:
+			log.Println("LOG ROOMS command received")
 			res, err = hotel.GetRoomsList(newCmd.Reservation.Day, newCmd.Reservation.Client)
 		case FREE:
+			log.Println("LOG FREE command received")
 			res, err = hotel.GetFreeRoom(newCmd.Reservation.Day, newCmd.Reservation.NbNights)
 		default:
+			log.Println("LOG Unknown command received")
 			err = errors.New("ERR Erreur de commande")
 		}
 
@@ -41,11 +56,11 @@ func ParseCommand(msg string, clientName string) (Command, error) {
 	}
 
 	// Identifies the command
-	switch args[0] {
-	case "BOOK":
+	switch CommandType(args[0]) {
+	case BOOK:
 		// Checks number of args
 		if len(args) != 4 {
-			return Command{}, errors.New("ERR Arguments manquants : BOOK <no chambre> <jour arrivée> <nb nuits>")
+			return Command{}, errors.New("ERR Arguments manquants ou invalides : BOOK <no chambre> <jour arrivée> <nb nuits>")
 		}
 
 		// Transform args into integers
@@ -59,10 +74,10 @@ func ParseCommand(msg string, clientName string) (Command, error) {
 
 		// All arguments valid, returns the command
 		return Command{Cmd: BOOK, Reservation: logic.Reservation{IdRoom: nRoom, Client: clientName, Day: day, NbNights: nbNights}, ReturnContent: make(chan string)}, nil
-	case "ROOMS":
+	case ROOMS:
 		// Checks number of args
 		if len(args) != 2 {
-			return Command{}, errors.New("ERR Arguments manquants : ROOMS <jour>")
+			return Command{}, errors.New("ERR Arguments manquants ou invalides : ROOMS <jour>")
 		}
 
 		// Transform args into integers
@@ -74,10 +89,10 @@ func ParseCommand(msg string, clientName string) (Command, error) {
 
 		// All arguments valid, displays the rooms status
 		return Command{Cmd: ROOMS, Reservation: logic.Reservation{Client: clientName, Day: day}, ReturnContent: make(chan string)}, nil
-	case "FREE":
+	case FREE:
 		// Checks number of args
 		if len(args) != 3 {
-			return Command{}, errors.New("ERR Arguments manquants : FREE <jour arrivée> <nb nuits>")
+			return Command{}, errors.New("ERR Arguments manquants ou invalides : FREE <jour arrivée> <nb nuits>")
 		}
 
 		// Transform args into integers
@@ -90,7 +105,7 @@ func ParseCommand(msg string, clientName string) (Command, error) {
 
 		// All arguments valid, looks for an available room
 		return Command{Cmd: FREE, Reservation: logic.Reservation{Day: day, NbNights: nbNights}, ReturnContent: make(chan string)}, nil
-	case "STOP":
+	case STOP:
 		return Command{Cmd: STOP}, nil
 	default:
 		return Command{}, errors.New("ERR Commande inconnue")

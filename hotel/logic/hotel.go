@@ -61,6 +61,7 @@ func (hotel *Hotel) GetRoomsList(day int, clientName string) (string, error) {
 		}
 		ret += "\n"
 	}
+	ret += "END\n"
 	return ret, nil
 }
 
