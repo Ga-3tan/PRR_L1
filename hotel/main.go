@@ -1,3 +1,4 @@
+// Package main contains the entry point of the program
 package main
 
 import (
@@ -6,9 +7,7 @@ import (
 	"hotel/hotel/net"
 )
 
-/**
-Entry point for the hotel app
-*/
+// main Entry point of the hotel program
 func main() {
 	/*/ Retrieves program arguments
 	debugMode := false
