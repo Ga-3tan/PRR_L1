@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bufio"
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -9,36 +9,46 @@ import (
 	"strings"
 )
 
-type Test struct {
-	query string
-	response string
+func readLineUntil(str string, conn net.Conn) {
+	for !strings.Contains(readLine(conn), str) {}
 }
 
-func writeStr(str string, writer bufio.Writer) {
-	_, err := writer.WriteString(str + "\n")
+func readLine(conn net.Conn) string {
+	reply := make([]byte, 1024)
+	_, err := conn.Read(reply)
+	if err != nil {
+		println("Read to server failed:", err.Error())
+		os.Exit(1)
+	}
+	println(string(reply))
+	return string(reply)
+}
+
+func writeStr(str string, conn net.Conn) {
+	_, err := fmt.Fprint(conn, str)
 	if err != nil {
 		println("Write to server failed:", err.Error())
 		os.Exit(1)
 	}
-	println(str)
 }
 
-func readLineUntil(str string, reader bufio.Reader) {
-	var reply string
-	var err error
+func writelnStr(str string, conn net.Conn) {
+	writeStr(str + "\n", conn)
+}
 
-	for !strings.Contains(reply, str) {
-		reply, err = reader.ReadString('\n')
-		if err != nil {
-			println("Read to server failed:", err.Error())
-			os.Exit(1)
-		}
-		println(reply)
+func Connect() net.Conn {
+	conn, err := net.Dial("tcp", "localhost:8000")
+	if err != nil {
+		log.Fatal(err)
 	}
+	return conn
 }
 
-func readLine(reader bufio.Reader) (string, error) {
-	return reader.ReadString('\n')
+func Disconnect(conn net.Conn) {
+	err := conn.Close()
+	if err != nil {
+		return 
+	}
 }
 
 /**
@@ -46,66 +56,35 @@ Entry point for the client app
 */
 func main() {
 	// Connects to the hotel on localhost:8000
-	socket, err := net.Dial("tcp", "localhost:8000")
+	conn, err := net.Dial("tcp", "localhost:8000")
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer socket.Close()
+	defer func(conn net.Conn) {
+		err := conn.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(conn)
 
 	tests := []Test{
-		{"BOOK 2 1 1", "OK votre chambre a été réservée"},
-		//{"",""},
+		{"BOOK 1 1 1", "OK votre chambre a été réservée"},
+		{"BOOK 1 1 1", "ERR votre chambre est déjà réservée"},
 	}
 
-	reader := *bufio.NewReader(socket)
-	writer := *bufio.NewWriter(socket)
-
-	readLineUntil("Veuillez spécifier votre nom :", reader)
-	writeStr("UserTest_1", writer)
-	readLineUntil(">> ", reader)
-
-	//for !strings.Contains(string(reply), "Veuillez spécifier votre nom :") {
-	//	_, err = socket.Read(reply)
-	//	if err != nil {
-	//		println("Read to server failed:", err.Error())
-	//		os.Exit(1)
-	//	}
-	//	println(string(reply))
-	//}
-
-	//for !strings.Contains(string(reply2), ">>") {
-	//	_, err = socket.Read(reply2)
-	//	if err != nil {
-	//		println("Read to server failed:", err.Error())
-	//		os.Exit(1)
-	//	}
-	//	println(string(reply2))
-	//}
+	readLineUntil("Veuillez spécifier votre nom :", conn)
+	writelnStr("UserTest_1", conn)
+	readLineUntil(">> ", conn)
 
 	for index, test := range tests {
 		println(test.query)
-		//_, err = socket.Write([]byte(test.query + "\n"))
-		//if err != nil {
-		//	println("Write to server failed:", err.Error())
-		//	os.Exit(1)
-		//}
-		writeStr(test.query, writer)
-		reply, err := readLine(reader)
+		writelnStr(test.query, conn)
+		reply := readLine(conn)
 		println("responses : " + reply)
-		//reply3 := make([]byte, 1024)
-		//_, err = socket.Read(reply3)
-		if err != nil {
-			println("Read to server failed:", err.Error())
-			os.Exit(1)
-		}
-
 		if !strings.Contains(reply , test.response) {
 			println("test number " + strconv.Itoa(index) + " failed")
 		} else {
 			println("test number " + strconv.Itoa(index) + " success")
 		}
 	}
-
-	// Closes the socket and waits for goroutine to finish
-	socket.Close()
 }
