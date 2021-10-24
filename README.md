@@ -58,6 +58,13 @@ Pour lancer les tests il suffit d'ouvrir un terminal dans le dossier `PRR_L1_Res
 go test
 ```
 
+/!\ Pour que les tests fonctionnent il faut que :
+
+- Il y ait au minimum 10 chambres
+- Il y ait au minimum 20 jours
+
+Ces valeurs sont modifiables dans le fichier `config.go` qui se trouve dans le dossier `PRR_L1_Reservation_Hotel/config`
+
 ## Fonctionnalités
 
 - Réserver une chambre libre pour un jour donné et un nombre de nuits
