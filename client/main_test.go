@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"hotel/client/clientTcp"
-	"hotel/client/utils"
+	"hotel/utils"
 	"net"
 	"os"
 	"strconv"

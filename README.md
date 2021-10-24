@@ -1,56 +1,126 @@
-# PRR - Labo 1
+
+
+# PRR | Laboratoire 1 - Réservation de chambres d'hôtel
 
 ## Installation
 
-## Usage
+### 1 - Cloner le repository
 
-## Rapport
-### Protocole
+Pour commencer, ouvrir un terminal et exécuter la commande suivante :
 
-#### Client :
-
-##### - Réserver une chambre :
-
-```http
-BOOK [n° de chambre] [jour] [nb de nuit] 
+```bash
+git clone git@github.com:Ga-3tan/PRR_L1_Reservation_Hotel.git
 ```
 
-##### - Lister les disponibilités des chambres :
+ou
 
-```http
+```bash
+git clone https://github.com/Ga-3tan/PRR_L1_Reservation_Hotel.git
+```
+
+Un dossier va se créer avec tout le contenu du laboratoire. Il faut ensuite build le client et le serveur pour pouvoir les utiliser.
+
+### 2 - Build le projet
+
+**Build le serveur**
+
+Pour build le serveur, il faut se rendre dans le dossier `PRR_L1_Reservation_Hotel/server` et ouvrir un terminal de commande dans ce dossier.
+
+Utiliser ensuite la commande suivante pour créer un fichier exécutable du programme (golang doit être installé sur la machine au préalable)
+
+```bash
+go build
+```
+
+Un fichier `server` sera crée et pourra être lancé dans un terminal.
+
+**Build le client**
+
+Pour build le serveur, il faut se rendre dans le dossier `PRR_L1_Reservation_Hotel/client` et ouvrir un terminal de commande dans ce dossier.
+
+Utiliser ensuite la commande suivante pour créer un fichier exécutable du programme (golang doit être installé sur la machine au préalable)
+
+```bash
+go build
+```
+
+Un fichier `client` sera crée et pourra être lancé dans un terminal.
+
+### 3 - Utiliser le client et le serveur
+
+Maintenant que les deux programes ont été build, il est possible de les lancer dans plusieurs terminaux de commande. Il est possible de lancer plusieures instances de clients mais uniquement un seul serveur.
+
+### 4 - Lancer les tests
+
+Pour lancer les tests il suffit d'ouvrir un terminal dans le dossier `PRR_L1_Reservation_Hotel` et lancer la commande suivante.
+
+```bash
+go test
+```
+
+## Fonctionnalités
+
+- Réserver une chambre libre pour un jour donné et un nombre de nuits
+- Lister le status (Libre, occupé, réservé) des chambres selon un jour donné
+- Trouver une chambre libre selon un jour et un nombre de nuits donnés
+- Lancer le serveur en mode début (attente de X secondes avant la prise de requêtes client)
+- Terminer la connexion au serveur avec la commande `STOP`
+- Le fichier `config.go` dans le dossier `PRR_L1_Reservation_Hotel/config` contient les paramètres modifiables du programme
+- Une documentation peut être générée grâce à l'utilitaire `godoc`
+- L'utilitaire `go race` ne relève aucun problème d'accès concurrent pendant l'utilisation du serveur et de plusieurs clients
+
+## Protocole
+
+### Spécificités
+
+- Une chambre réservée le jour 1 pour 5 nuits sera libre le jour 6
+
+### Commandes
+
+##### Réserver une chambre
+
+```css
+BOOK [n° de chambre] [jour] [nb de nuits] 
+```
+
+##### Lister les disponibilités des chambres
+
+```css
 ROOMS [jour]
 ```
 
-##### - Une chambre disponible pour un séjour précisé :
+##### Une chambre disponible pour un séjour précisé
 
-```http
-FREE [jour] [nb de nuit]
+```css
+FREE [jour] [nb de nuits]
 ```
 
-##### - Quitter le service :
+##### Quitter le service
 
-```http
+##### Quitter le service
+
+```css
 STOP
 ```
 
-#### Serveur :
+### Types de réponses
 
-##### Réponse à une réservation :
+##### Réponse à une réservation
 
-```http
->> BOOK 5 2 3
+```css
+BOOK 5 2 3
 OK votre chambre a été réservée
 ```
 
-```http
->> BOOK 1 2 3
+```css
+BOOK 1 2 3
 ERR votre chambre est déjà réservée
 ```
 
-##### Liste des disponibilités des chambres :
+##### Liste des disponibilités des chambres
 
-```http
->> ROOMS 7
+```css
+ROOMS 7
 | Chambre: 1, Status: OCCUPE
 | Chambre: 2, Status: LIBRE
 | Chambre: 3, Status: LIBRE
@@ -64,12 +134,69 @@ ERR votre chambre est déjà réservée
 END
 ```
 
-##### Réponse à une demande de chambre pour un séjour :
+##### Réponse à une demande de chambre pour un séjour
 
-```http
->> FREE 5 2
+##### Réponse à une demande de chambre pour un séjour
+
+```css
+FREE 5 2
 OK chambre 1 disponible
 ```
 
+## Guide pour provoquer un accès concurrent
+
+### Description
+
+Ce guide détaille les étapes pour provoquer un accès concurrent lors d'un envoi de la même commande depuis plusieurs clients vers le serveur. Cela permet de vérifier le bon fonctionnement de la gestion de la concurrence.
+
+Lorsqu'il est en mode `debug`, le serveur démarre et accepte les nouvelles connexions client. Le contexte s'occupant du traitement des requêtes se met en pause pendant X secondes afin de laisser le temps à la création d'un accès concurrent.
+
+### Etapes
+
+**1 - Activer le mode `debug`**
+
+-> Ouvrir le fichier `config.go`se trouvant dans le dossier `hôtel/config`
+
+-> Modifier le champ `DEBUG` en lui affectant la valeur 1 :
+
+```go
+DEBUG = 1
+```
+
+-> Modifier si nécessaire le temps de "sommeil" du serveur au démarrage
+
+```go
+DEBUG_SLEEP = X // Remplacer X par le nombre de secondes à attendre
+```
+
+**2 - Préparer plusieurs terminaux de commande**
+
+-> Ouvrir 3 terminaux de commande et les placer côte à côte
+
+-> Démarrer deux instances de clients
+
+-> Démarrer une instance de serveur
+
+> ATTENTION /!\ Au démarrage du serveur, vous aurez X secondes pour provoquer l'accès concurrent !
+
+**3 - Provoquer l'accès concurrent**
+
+-> Dès que le serveur est lancé, entrer deux noms de différents sur chaque client
+
+-> Envoyer la requête suivante depuis les deux clients
+
+```sh
+BOOK 1 2 3
+```
+
+> Cette commande demande la réservation de la chambre 1 depuis le jour 2 pendant 3 nuits
+
+**4 - Résultat de la manipulation**
+
+-> A ce moment, les deux clients vont se bloquer jusqu'à ce que le serveur termine les X secondes d'attente. Il va ensuite traîter les deux commandes et envoyer les retours aux clients
+
+-> L'un des clients aura donc obtenu la réservation et l'autre reçevra un message de refus, l'accès concurent aura été provoqué et  correctement géré 
+
 ## License
+
 [MIT](https://choosealicense.com/licenses/mit/)
