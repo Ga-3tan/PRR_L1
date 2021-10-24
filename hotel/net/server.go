@@ -1,3 +1,4 @@
+// Package net contains all network interactions, requests and clients management
 package net
 
 import (
@@ -11,6 +12,7 @@ import (
 	"strconv"
 )
 
+// Start runs a new instance of a server
 func Start(hotel* logic.Hotel) {
 	// Start goroutine handling commands
 	var commandsChan = make(chan cmd.Command)
@@ -43,9 +45,8 @@ func Start(hotel* logic.Hotel) {
 	}
 }
 
-/**
-Handles the connexion of a new client
-*/
+// handleNewClient is used to manage a new connexion from a client
+// It records the client inputs
 func handleNewClient(socket net.Conn, commandsChan chan cmd.Command) {
 	clientName := ""
 	input := bufio.NewScanner(socket)
