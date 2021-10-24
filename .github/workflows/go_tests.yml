@@ -32,6 +32,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
     - name: startSrv
-      run: start /b (go run ./server/main.go)
+      run: Start-Job -ScriptBlock {go run -/server/main.go}
     - name: Test
       run: go test -v ./client
