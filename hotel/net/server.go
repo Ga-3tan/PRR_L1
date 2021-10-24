@@ -52,8 +52,8 @@ func handleNewClient(socket net.Conn, commandsChan chan cmd.Command) {
 	input := bufio.NewScanner(socket)
 
 	// Greets the client
-	fmt.Fprint(socket, "Bienvenue dans le système de gestion de réservations de l'hotel."+
-		"\nVeuillez spécifier votre nom : ")
+	fmt.Fprintln(socket, "Bienvenue dans le système de gestion de réservations de l'hotel.")
+	fmt.Fprintln(socket, "Veuillez spécifier votre nom : ")
 
 	// Waits for client input and responds
 	for input.Scan() {
@@ -61,10 +61,10 @@ func handleNewClient(socket net.Conn, commandsChan chan cmd.Command) {
 
 		if clientName == "" {
 			if userInput == "" {
-				fmt.Fprint(socket, "Veuillez spécifier votre nom : ")
+				fmt.Fprintln(socket, "Veuillez spécifier votre nom : ")
 			} else {
 				clientName = userInput
-				fmt.Fprint(socket, "Bienvenue " + clientName + " ! Utilisez STOP pour quitter.\n>> ")
+				fmt.Fprintln(socket, "Bienvenue " + clientName + " ! Utilisez STOP pour quitter.")
 			}
 		} else {
 			// Handles the client command
@@ -87,8 +87,6 @@ func handleNewClient(socket net.Conn, commandsChan chan cmd.Command) {
 				// No STOP, returns the result
 				fmt.Fprintln(socket, cmdResult)
 			}
-
-			fmt.Fprint(socket, ">> ")
 		}
 	}
 	socket.Close()
