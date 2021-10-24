@@ -22,9 +22,7 @@ func Start() {
 	}()
 
 	// Copies the received data from the socket to os input
-	if _, err := io.Copy(conn, os.Stdin); err != nil {
-		log.Println(err)
-	}
+	if _, err := io.Copy(conn, os.Stdin); err != nil {}
 
 	// Closes the socket and waits for goroutine to finish
 	Disconnect(conn)

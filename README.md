@@ -4,6 +4,21 @@
 
 ## Installation
 
+### 0 - Structure du projet
+
+Le projet est consitué de deux principaux dossiers : `client` et `server`
+
+Chacun de ces dossiers contient un ficheir `main.go` qui représente le point d'entrée de chacun des deux programmes. Dans `client` il y a aussi un fichier `main_test.go` qui contient tous les tests permettant de vérifier que le service de réservation fonctionne correctement.
+
+Le code est ensuite divisé dans divers packets qui séparent les différents aspects des programmes.
+
+- Les packets `clientTcp` et `serverTcp` contiennent tout ce qui touche aux connexions tcp des programmes
+- Les packets `utils` et `config` contiennent du code utilisé par les deux programmes 
+- Le packet `cmd` contient tout ce qui touche aux commandes utilisateur
+- Le packet `logic` regroupe tout ce qui touche à la logique de réservation de chambres de l'hôtel
+
+Plus d'information est disponible en générant une documentation grâce à l'utilitaire `godoc`
+
 ### 1 - Cloner le repository
 
 Pour commencer, ouvrir un terminal et exécuter la commande suivante :
@@ -52,7 +67,7 @@ Maintenant que les deux programes ont été build, il est possible de les lancer
 
 ### 4 - Lancer les tests
 
-Pour lancer les tests il suffit d'ouvrir un terminal dans le dossier `PRR_L1_Reservation_Hotel` et lancer la commande suivante.
+Pour lancer les tests il suffit d'ouvrir un terminal dans le dossier `PRR_L1_Reservation_Hotel/client` et lancer la commande suivante.
 
 ```bash
 go test
@@ -62,25 +77,33 @@ go test
 
 - Il y ait au minimum 10 chambres
 - Il y ait au minimum 20 jours
+- L'instace du serveur lancée en arrière plan soit vierge (pas de chambres déjà réservées au lancement des tests)
 
 Ces valeurs sont modifiables dans le fichier `config.go` qui se trouve dans le dossier `PRR_L1_Reservation_Hotel/config`
 
 ## Fonctionnalités
 
+**Fonctionne**
+
 - Réserver une chambre libre pour un jour donné et un nombre de nuits
 - Lister le status (Libre, occupé, réservé) des chambres selon un jour donné
 - Trouver une chambre libre selon un jour et un nombre de nuits donnés
-- Lancer le serveur en mode début (attente de X secondes avant la prise de requêtes client)
+- Lancer le serveur en mode debug (attente de X secondes avant la prise de requêtes client)
 - Terminer la connexion au serveur avec la commande `STOP`
 - Le fichier `config.go` dans le dossier `PRR_L1_Reservation_Hotel/config` contient les paramètres modifiables du programme
 - Une documentation peut être générée grâce à l'utilitaire `godoc`
 - L'utilitaire `go race` ne relève aucun problème d'accès concurrent pendant l'utilisation du serveur et de plusieurs clients
+
+**Ne fonctionne pas**
+
+- Le test pour vérifier la commande `ROOMS` ne fonctionne pas. Le test est commenté dans le fichier `main_test`dans le dossier `PRR_L1_Reservation_Hotel/client`. (La commande fonctionne sans problèmes et retourne des résultats corrects)
 
 ## Protocole
 
 ### Spécificités
 
 - Une chambre réservée le jour 1 pour 5 nuits sera libre le jour 6
+- Les numéros de chambre et de jours commencent à 1
 
 ### Commandes
 
@@ -101,8 +124,6 @@ ROOMS [jour]
 ```css
 FREE [jour] [nb de nuits]
 ```
-
-##### Quitter le service
 
 ##### Quitter le service
 
@@ -140,8 +161,6 @@ ROOMS 7
 | Chambre: 10, Status: LIBRE
 END
 ```
-
-##### Réponse à une demande de chambre pour un séjour
 
 ##### Réponse à une demande de chambre pour un séjour
 

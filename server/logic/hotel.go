@@ -104,7 +104,7 @@ func validateDay(hotel *Hotel, day int) error {
 
 // validateNbNights ensures that the number of night is valid
 func validateNbNights(hotel *Hotel, day int, nbNights int) error {
-	if day + nbNights - 1 > hotel.MaxDays {
+	if nbNights < 1 || day + nbNights - 1 > hotel.MaxDays {
 		return errors.New("ERR nombre de nuits invalide")
 	}
 	return nil

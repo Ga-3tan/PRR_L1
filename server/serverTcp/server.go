@@ -93,7 +93,7 @@ func handleNewClient(socket net.Conn, commandsChan chan cmd.Command) {
 			}
 		}
 	}
-	log.Println("LOG Closing client handler of " + clientName)
+	log.Println("LOG Closing client handler " + socket.RemoteAddr().String())
 
 	// Closes the connexion
 	err := socket.Close()
