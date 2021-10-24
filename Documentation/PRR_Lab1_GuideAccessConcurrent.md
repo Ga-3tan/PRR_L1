@@ -53,3 +53,4 @@ BOOK 1 2 3
 -> A ce moment, les deux clients vont se bloquer jusqu'à ce que le serveur termine les X secondes d'attente. Il va ensuite traîter les deux commandes et envoyer les retours aux clients
 
 -> L'un des clients aura donc obtenu la réservation et l'autre reçevra un message de refus, l'accès concurent aura été provoqué et  correctement géré 
+

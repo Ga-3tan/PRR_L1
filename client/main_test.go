@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"hotel/client/clientTcp"
-	"hotel/client/utils"
 	"hotel/config"
+	"hotel/utils"
 	"net"
 	"os"
 	"strconv"
@@ -115,7 +115,7 @@ func TestFreeRoomWhenAllRoomsForTheDayAreFull(t *testing.T) {
 //	availability := "RESERVE"
 //
 //	for i := 1; i <= config.MAX_ROOMS; i++ {
-//		reply, _ := utils.ReadLn(conn)
+//		reply := utils.ReadLn(conn)
 //		fmt.Println("Server response :")
 //		fmt.Println(reply)
 //		if reply != "| Chambre: " + strconv.Itoa(i) + ", Status: " + availability {
@@ -127,7 +127,7 @@ func TestFreeRoomWhenAllRoomsForTheDayAreFull(t *testing.T) {
 //		}
 //	}
 //
-//	reply, _ := utils.ReadLn(conn)
+//	reply := utils.ReadLn(conn)
 //	fmt.Println("Server response :")
 //	fmt.Println(reply)
 //
@@ -145,7 +145,7 @@ func doTest(tests []Test, t *testing.T) {
 		utils.WriteLn(conn, test.query)
 
 		// Reads the server reply
-		reply, _ := utils.ReadLn(conn)
+		reply := utils.ReadLn(conn)
 		fmt.Println("Server response :")
 		fmt.Println(reply)
 

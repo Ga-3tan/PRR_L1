@@ -31,11 +31,10 @@ func (hotel *Hotel) isAlreadyBooked(idRoom int, day int, nbNights int) (bool, Re
 
 // BookRoom books a room in the given server
 func (hotel *Hotel) BookRoom(idRoom int, day int, nbNights int, client string) (string, error) {
-	if day < 1 || day > hotel.MaxDays {
-		return "", errors.New("ERR jour invalide")
-	} else if idRoom < 1 || idRoom > hotel.MaxRooms {
-		return "", errors.New("ERR chambre invalide")
-	}
+	// Check errors
+	if err := validateDay(hotel, day); err != nil { return "", err }
+	if err := validateIdRoom(hotel, idRoom); err != nil { return "", err }
+	if err := validateNbNights(hotel, day, nbNights); err != nil { return "", err }
 
 	isBooked, _ := hotel.isAlreadyBooked(idRoom, day, nbNights)
 
@@ -49,8 +48,10 @@ func (hotel *Hotel) BookRoom(idRoom int, day int, nbNights int, client string) (
 
 // GetRoomsList retrieves a list of rooms and their status
 func (hotel *Hotel) GetRoomsList(day int, clientName string) (string, error) {
-	ret := ""
+	// Check errors
+	if err := validateDay(hotel, day); err != nil { return "", err }
 
+	ret := ""
 	for i := 1; i <= hotel.MaxRooms; i++ {
 		ret += "| Chambre: " + strconv.Itoa(i) + ", Status: "
 
@@ -67,12 +68,15 @@ func (hotel *Hotel) GetRoomsList(day int, clientName string) (string, error) {
 		}
 		ret += "\n"
 	}
-	ret += "END\n"
+	ret += "END"
 	return ret, nil
 }
 
 // GetFreeRoom finds an available room with the given arguments
 func (hotel *Hotel) GetFreeRoom(day int, nbNights int) (string, error) {
+	if err := validateDay(hotel, day); err != nil { return "", err }
+	if err := validateNbNights(hotel, day, nbNights); err != nil { return "", err }
+
 	for i := 1; i <= hotel.MaxRooms; i++ {
 		isBooked, _ := hotel.isAlreadyBooked(i, day, nbNights)
 		if !isBooked {
@@ -80,4 +84,28 @@ func (hotel *Hotel) GetFreeRoom(day int, nbNights int) (string, error) {
 		}
 	}
 	return "", errors.New("ERR aucune chambre disponible")
+}
+
+// validateIdRoom ensures that the room id is valid
+func validateIdRoom(hotel *Hotel, id int) error {
+	if id < 1 || id > hotel.MaxRooms {
+		return errors.New("ERR chambre invalide")
+	}
+	return nil
+}
+
+// validateDay ensures that the given day is valid
+func validateDay(hotel *Hotel, day int) error {
+	if day < 1 || day > hotel.MaxDays {
+		return errors.New("ERR jour invalide")
+	}
+	return nil
+}
+
+// validateNbNights ensures that the number of night is valid
+func validateNbNights(hotel *Hotel, day int, nbNights int) error {
+	if day + nbNights - 1 > hotel.MaxDays {
+		return errors.New("ERR nombre de nuits invalide")
+	}
+	return nil
 }
