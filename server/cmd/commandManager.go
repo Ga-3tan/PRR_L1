@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"errors"
-	"hotel/hotel/config"
-	"hotel/hotel/logic"
+	"hotel/config"
+	"hotel/server/logic"
 	"log"
 	"strconv"
 	"strings"

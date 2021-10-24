@@ -6,7 +6,7 @@
 
 Ce guide détaille les étapes pour provoquer un accès concurrent lors d'un envoi de la même commande depuis plusieurs clients vers le serveur. Cela permet de vérifier le bon fonctionnement de la gestion de la concurrence.
 
-Lorsqu'il est en mode `debug`, le serveur démarre et accepte les nouvelles connexions client. Le contexte s'occupant du traitement des requêtes se met en pause pendant 20 secondes afin de laisser le temps à la création d'un accès concurrent.
+Lorsqu'il est en mode `debug`, le serveur démarre et accepte les nouvelles connexions client. Le contexte s'occupant du traitement des requêtes se met en pause pendant X secondes afin de laisser le temps à la création d'un accès concurrent.
 
 ## Etapes
 
@@ -34,7 +34,7 @@ DEBUG_SLEEP = X // Remplacer X par le nombre de secondes à attendre
 
 -> Démarrer une instance de serveur
 
-> ATTENTION /!\ Au démarrage du serveur, vous aurez 20 secondes pour provoquer l'accès concurrent !
+> ATTENTION /!\ Au démarrage du serveur, vous aurez X secondes pour provoquer l'accès concurrent !
 
 **3 - Provoquer l'accès concurrent**
 
@@ -50,6 +50,6 @@ BOOK 1 2 3
 
 **4 - Résultat de la manipulation**
 
--> A ce moment, les deux clients vont se bloquer jusqu'à ce que le serveur termine les 20 secondes d'attente. Il va ensuite traîter les deux commandes et envoyer les retours aux clients
+-> A ce moment, les deux clients vont se bloquer jusqu'à ce que le serveur termine les X secondes d'attente. Il va ensuite traîter les deux commandes et envoyer les retours aux clients
 
 -> L'un des clients aura donc obtenu la réservation et l'autre reçevra un message de refus, l'accès concurent aura été provoqué et  correctement géré 

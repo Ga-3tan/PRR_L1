@@ -1,4 +1,4 @@
-// Package logic contains all the hotel logic and reservations interactions
+// Package logic contains all the server logic and reservations interactions
 package logic
 
 import (
@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-// Hotel represents a hotel structure
+// Hotel represents a server structure
 type Hotel struct {
 	Reservations map[int][]Reservation
 	MaxDays  	 int
@@ -29,7 +29,7 @@ func (hotel *Hotel) isAlreadyBooked(idRoom int, day int, nbNights int) (bool, Re
 	return false, Reservation{}
 }
 
-// BookRoom books a room in the given hotel
+// BookRoom books a room in the given server
 func (hotel *Hotel) BookRoom(idRoom int, day int, nbNights int, client string) (string, error) {
 	if day < 1 || day > hotel.MaxDays {
 		return "", errors.New("ERR jour invalide")

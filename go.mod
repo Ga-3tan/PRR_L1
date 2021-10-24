@@ -1,3 +1,4 @@
+// Main module of the Hotel Client/Server
 module hotel
 
 go 1.17
