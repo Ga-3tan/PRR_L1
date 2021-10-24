@@ -1,7 +1,8 @@
+// Package cmd contains all the logic related to user commands
 package cmd
 
 import (
-	"hotel/hotel/logic"
+	"hotel/server/logic"
 )
 
 // Command represents a command sent by a client after parsing

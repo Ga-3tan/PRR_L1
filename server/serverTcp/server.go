@@ -1,12 +1,12 @@
-// Package net contains all network interactions, requests and clients management
-package net
+// Package serverTcp contains all network interactions, requests and clients management
+package serverTcp
 
 import (
 	"bufio"
 	"fmt"
-	"hotel/cmd"
-	"hotel/hotel/config"
-	"hotel/hotel/logic"
+	"hotel/config"
+	"hotel/server/cmd"
+	"hotel/server/logic"
 	"log"
 	"net"
 	"strconv"
@@ -19,7 +19,7 @@ func Start(hotel* logic.Hotel) {
 	go cmd.CommandHandler(hotel, commandsChan)
 
 	// Listens
-	serverSocket, err := net.Listen("tcp", config.HOST + ":" + strconv.Itoa(config.PORT))
+	serverSocket, err := net.Listen("tcp", config.HOST+ ":" + strconv.Itoa(config.PORT))
 	log.Println("LOG Server started on " + config.HOST + ":" + strconv.Itoa(config.PORT))
 
 	// Error handle
@@ -52,8 +52,7 @@ func handleNewClient(socket net.Conn, commandsChan chan cmd.Command) {
 	input := bufio.NewScanner(socket)
 
 	// Greets the client
-	fmt.Fprintln(socket, "Bienvenue dans le système de gestion de réservations de l'hotel.")
-	fmt.Fprintln(socket, "Veuillez spécifier votre nom : ")
+	fmt.Fprintln(socket, "Bienvenue dans le système de gestion de réservations de l'server. Veuillez spécifier votre nom : ")
 
 	// Waits for client input and responds
 	for input.Scan() {
@@ -89,5 +88,6 @@ func handleNewClient(socket net.Conn, commandsChan chan cmd.Command) {
 			}
 		}
 	}
+	log.Println("LOG closing client handler of " + clientName)
 	socket.Close()
 }
