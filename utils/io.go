@@ -3,14 +3,18 @@ package utils
 
 import (
 	"bufio"
-	"bytes"
-	"io"
+	"log"
 	"net"
 )
 
 // ReadLn is used to read a line from a source connexion
-func ReadLn(conn net.Conn) (string, error) {
-	reader := bufio.NewReader(conn)
+func ReadLn(conn net.Conn) string {
+	scanner := bufio.NewScanner(conn)
+	if scanner.Scan() {
+		return scanner.Text()
+	}
+	return ""
+	/*reader := bufio.NewReader(conn)
 	var buffer bytes.Buffer
 	for {
 		ba, isPrefix, err := reader.ReadLine()
@@ -18,22 +22,23 @@ func ReadLn(conn net.Conn) (string, error) {
 			if err == io.EOF {
 				break
 			}
-			return "", err
+			log.Fatal(err)
 		}
 		buffer.Write(ba)
 		if !isPrefix {
 			break
 		}
 	}
-	return buffer.String(), nil
+	return buffer.String()*/
 }
 
 // WriteLn writes a line in a given connexion
-func WriteLn(conn net.Conn, content string) (int, error) {
+func WriteLn(conn net.Conn, content string) {
 	writer := bufio.NewWriter(conn)
-	number, err := writer.WriteString(content + "\n")
+	_, err := writer.WriteString(content + "\n")
 	if err == nil {
 		err = writer.Flush()
+	} else {
+		log.Fatal(err)
 	}
-	return number, err
 }

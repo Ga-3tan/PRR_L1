@@ -3,10 +3,10 @@ package serverTcp
 
 import (
 	"bufio"
-	"fmt"
 	"hotel/config"
 	"hotel/server/cmd"
 	"hotel/server/logic"
+	"hotel/utils"
 	"log"
 	"net"
 	"strconv"
@@ -26,7 +26,12 @@ func Start(hotel* logic.Hotel) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer serverSocket.Close()
+	defer func(serverSocket net.Listener) {
+		err := serverSocket.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(serverSocket)
 
 	// Accepts new connexions and handles them
 	log.Println("LOG Now accepting new client connexions")
@@ -52,7 +57,7 @@ func handleNewClient(socket net.Conn, commandsChan chan cmd.Command) {
 	input := bufio.NewScanner(socket)
 
 	// Greets the client
-	fmt.Fprintln(socket, "Bienvenue dans le système de gestion de réservations de l'server. Veuillez spécifier votre nom : ")
+	utils.WriteLn(socket, "Bienvenue dans le système de gestion de réservations de l'server. Veuillez spécifier votre nom : ")
 
 	// Waits for client input and responds
 	for input.Scan() {
@@ -60,10 +65,10 @@ func handleNewClient(socket net.Conn, commandsChan chan cmd.Command) {
 
 		if clientName == "" {
 			if userInput == "" {
-				fmt.Fprintln(socket, "Veuillez spécifier votre nom : ")
+				utils.WriteLn(socket, "Veuillez spécifier votre nom : ")
 			} else {
 				clientName = userInput
-				fmt.Fprintln(socket, "Bienvenue " + clientName + " ! Utilisez STOP pour quitter.")
+				utils.WriteLn(socket, "Bienvenue " + clientName + " ! Utilisez STOP pour quitter.")
 			}
 		} else {
 			// Handles the client command
@@ -71,7 +76,7 @@ func handleNewClient(socket net.Conn, commandsChan chan cmd.Command) {
 
 			// Displays error message
 			if err != nil {
-				fmt.Fprintln(socket, err.Error())
+				utils.WriteLn(socket, err.Error())
 			} else {
 				// Checks if command is STOP
 				if outputCmd.Cmd == cmd.STOP {
@@ -84,10 +89,15 @@ func handleNewClient(socket net.Conn, commandsChan chan cmd.Command) {
 				cmdResult := <- outputCmd.ReturnContent
 
 				// No STOP, returns the result
-				fmt.Fprintln(socket, cmdResult)
+				utils.WriteLn(socket, cmdResult)
 			}
 		}
 	}
-	log.Println("LOG closing client handler of " + clientName)
-	socket.Close()
+	log.Println("LOG Closing client handler of " + clientName)
+
+	// Closes the connexion
+	err := socket.Close()
+	if err != nil {
+		log.Println(err)
+	}
 }
