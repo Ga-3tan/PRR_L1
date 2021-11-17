@@ -9,8 +9,8 @@ import (
 // Hotel represents a server structure
 type Hotel struct {
 	Reservations map[int][]Reservation
-	MaxDays  	 int
-	MaxRooms 	 int
+	MaxDays      int
+	MaxRooms     int
 }
 
 // isAlreadyBooked verifies whether a room is already booked or not.
@@ -32,9 +32,15 @@ func (hotel *Hotel) isAlreadyBooked(idRoom int, day int, nbNights int) (bool, Re
 // BookRoom books a room in the given server
 func (hotel *Hotel) BookRoom(idRoom int, day int, nbNights int, client string) (string, error) {
 	// Check errors
-	if err := validateDay(hotel, day); err != nil { return "", err }
-	if err := validateIdRoom(hotel, idRoom); err != nil { return "", err }
-	if err := validateNbNights(hotel, day, nbNights); err != nil { return "", err }
+	if err := validateDay(hotel, day); err != nil {
+		return "", err
+	}
+	if err := validateIdRoom(hotel, idRoom); err != nil {
+		return "", err
+	}
+	if err := validateNbNights(hotel, day, nbNights); err != nil {
+		return "", err
+	}
 
 	isBooked, _ := hotel.isAlreadyBooked(idRoom, day, nbNights)
 
@@ -49,7 +55,9 @@ func (hotel *Hotel) BookRoom(idRoom int, day int, nbNights int, client string) (
 // GetRoomsList retrieves a list of rooms and their status
 func (hotel *Hotel) GetRoomsList(day int, clientName string) (string, error) {
 	// Check errors
-	if err := validateDay(hotel, day); err != nil { return "", err }
+	if err := validateDay(hotel, day); err != nil {
+		return "", err
+	}
 
 	ret := ""
 	for i := 1; i <= hotel.MaxRooms; i++ {
@@ -74,8 +82,12 @@ func (hotel *Hotel) GetRoomsList(day int, clientName string) (string, error) {
 
 // GetFreeRoom finds an available room with the given arguments
 func (hotel *Hotel) GetFreeRoom(day int, nbNights int) (string, error) {
-	if err := validateDay(hotel, day); err != nil { return "", err }
-	if err := validateNbNights(hotel, day, nbNights); err != nil { return "", err }
+	if err := validateDay(hotel, day); err != nil {
+		return "", err
+	}
+	if err := validateNbNights(hotel, day, nbNights); err != nil {
+		return "", err
+	}
 
 	for i := 1; i <= hotel.MaxRooms; i++ {
 		isBooked, _ := hotel.isAlreadyBooked(i, day, nbNights)
@@ -104,7 +116,7 @@ func validateDay(hotel *Hotel, day int) error {
 
 // validateNbNights ensures that the number of night is valid
 func validateNbNights(hotel *Hotel, day int, nbNights int) error {
-	if nbNights < 1 || day + nbNights - 1 > hotel.MaxDays {
+	if nbNights < 1 || day+nbNights-1 > hotel.MaxDays {
 		return errors.New("ERR nombre de nuits invalide")
 	}
 	return nil

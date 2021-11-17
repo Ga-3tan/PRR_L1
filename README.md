@@ -107,6 +107,20 @@ Ces valeurs sont modifiables dans le fichier `config.go` qui se trouve dans le d
 
 ### Commandes
 
+#### Connexion 
+##### Premier message lors d'une connexion :
+##### d'un serveur
+
+```css
+SRV
+```
+
+##### d'un client
+
+```css
+CLI
+```
+
 ##### Réserver une chambre
 
 ```css

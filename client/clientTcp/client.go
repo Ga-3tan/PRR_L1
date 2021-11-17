@@ -22,7 +22,8 @@ func Start() {
 	}()
 
 	// Copies the received data from the socket to os input
-	if _, err := io.Copy(conn, os.Stdin); err != nil {}
+	if _, err := io.Copy(conn, os.Stdin); err != nil {
+	}
 
 	// Closes the socket and waits for goroutine to finish
 	Disconnect(conn)
@@ -31,7 +32,7 @@ func Start() {
 
 func Connect() net.Conn {
 	// Connects to the server on localhost:8000
-	conn, err := net.Dial("tcp", config.HOST + ":" + strconv.Itoa(config.PORT))
+	conn, err := net.Dial("tcp", config.HOST+":"+strconv.Itoa(9090))
 	if err != nil {
 		log.Fatal(err)
 	}

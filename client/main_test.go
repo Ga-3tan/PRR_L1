@@ -12,7 +12,7 @@ import (
 )
 
 type Test struct {
-	query string
+	query    string
 	response string
 }
 
@@ -62,7 +62,7 @@ func TestWrongInput(t *testing.T) {
 		{"BOOK a b c", "ERR Argument invalide"},
 		{"ROOMS", "ERR Arguments manquants ou invalides : ROOMS <jour>"},
 		{"ROOMS a", "ERR Argument invalide"},
-		{"FREE 1","ERR Arguments manquants ou invalides : FREE <jour arrivée> <nb nuits>"},
+		{"FREE 1", "ERR Arguments manquants ou invalides : FREE <jour arrivée> <nb nuits>"},
 		{"FREE 1a 2", "ERR Argument invalide"},
 	}
 	doTest(tests, t)
@@ -86,14 +86,14 @@ func TestFreeRoomWhenAllRoomsForTheDayAreFull(t *testing.T) {
 
 	// for each room, we book day 15 and 16
 	for i := 1; i <= config.MAX_ROOMS; i++ {
-		utils.WriteLn(conn, "BOOK " + strconv.Itoa(i) + " 15 2")
+		utils.WriteLn(conn, "BOOK "+strconv.Itoa(i)+" 15 2")
 		utils.ReadLn(conn)
 	}
 
 	tests := []Test{
-		{"FREE 15 1","ERR aucune chambre disponible"},
-		{"FREE 16 1","ERR aucune chambre disponible"},
-		{"FREE 17 1","OK chambre 1 disponible"},
+		{"FREE 15 1", "ERR aucune chambre disponible"},
+		{"FREE 16 1", "ERR aucune chambre disponible"},
+		{"FREE 17 1", "OK chambre 1 disponible"},
 	}
 
 	doTest(tests, t)
@@ -151,10 +151,10 @@ func doTest(tests []Test, t *testing.T) {
 
 		// Check if the test passes
 		if reply != test.response {
-			fmt.Println(">> Test id " + strconv.Itoa(index) +  " -> FAIL")
-			t.Error("\nRECEIVED\n" + reply + "\nEXPECTED\n"+ test.response)
+			fmt.Println(">> Test id " + strconv.Itoa(index) + " -> FAIL")
+			t.Error("\nRECEIVED\n" + reply + "\nEXPECTED\n" + test.response)
 		} else {
-			fmt.Println(">> Test id " + strconv.Itoa(index) +  " -> SUCCESS")
+			fmt.Println(">> Test id " + strconv.Itoa(index) + " -> SUCCESS")
 		}
 		fmt.Println()
 	}

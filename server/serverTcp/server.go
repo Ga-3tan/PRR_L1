@@ -3,47 +3,27 @@ package serverTcp
 
 import (
 	"bufio"
-	"hotel/config"
 	"hotel/server/cmd"
 	"hotel/server/logic"
+	"hotel/server/network"
 	"hotel/utils"
 	"log"
 	"net"
-	"strconv"
 )
 
 // Start runs a new instance of a server
-func Start(hotel* logic.Hotel) {
+func Start(srvId int, hotel *logic.Hotel) {
 	// Start goroutine handling commands
 	var commandsChan = make(chan cmd.Command)
 	go cmd.CommandHandler(hotel, commandsChan)
 
-	// Listens
-	serverSocket, err := net.Listen("tcp", config.HOST+ ":" + strconv.Itoa(config.PORT))
-	log.Println("LOG Server started on " + config.HOST + ":" + strconv.Itoa(config.PORT))
+	// Starts the servers / clients detection
+	connMg := network.ConnManager{Id: srvId, Conns: make(map[int]net.Conn), CliCh: make(chan net.Conn)}
+	go connMg.AcceptConnections()
+	connMg.ConnectAll()
 
-	// Error handle
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func(serverSocket net.Listener) {
-		err := serverSocket.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}(serverSocket)
-
-	// Accepts new connexions and handles them
-	log.Println("LOG Now accepting new client connexions")
-	for {
-		newSocket, err := serverSocket.Accept()
-
-		// Error handle
-		if err != nil {
-			log.Print(err)
-			continue
-		}
-
+	// Waits for clients connection
+	for newSocket := range connMg.CliCh {
 		// Handles the new connexion
 		log.Println("LOG New connexion from " + newSocket.RemoteAddr().String())
 		go handleNewClient(newSocket, commandsChan)
@@ -57,7 +37,7 @@ func handleNewClient(socket net.Conn, commandsChan chan cmd.Command) {
 	input := bufio.NewScanner(socket)
 
 	// Greets the client
-	utils.WriteLn(socket, "Bienvenue dans le système de gestion de réservations de l'server. Veuillez spécifier votre nom : ")
+	utils.WriteLn(socket, "Bienvenue dans le système de gestion de réservations de l'hotel. Veuillez spécifier votre nom : ")
 
 	// Waits for client input and responds
 	for input.Scan() {
@@ -68,7 +48,7 @@ func handleNewClient(socket net.Conn, commandsChan chan cmd.Command) {
 				utils.WriteLn(socket, "Veuillez spécifier votre nom : ")
 			} else {
 				clientName = userInput
-				utils.WriteLn(socket, "Bienvenue " + clientName + " ! Utilisez STOP pour quitter.")
+				utils.WriteLn(socket, "Bienvenue "+clientName+" ! Utilisez STOP pour quitter.")
 			}
 		} else {
 			// Handles the client command
@@ -86,7 +66,7 @@ func handleNewClient(socket net.Conn, commandsChan chan cmd.Command) {
 
 				// Executes the command
 				commandsChan <- outputCmd
-				cmdResult := <- outputCmd.ReturnContent
+				cmdResult := <-outputCmd.ReturnContent
 
 				// No STOP, returns the result
 				utils.WriteLn(socket, cmdResult)

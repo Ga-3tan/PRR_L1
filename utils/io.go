@@ -10,7 +10,8 @@ import (
 )
 
 // ReadLn is used to read a line from a source connexion
-func ReadLn(conn net.Conn) string {reader := bufio.NewReader(conn)
+func ReadLn(conn net.Conn) string {
+	reader := bufio.NewReader(conn)
 	var buffer bytes.Buffer
 	for {
 		ba, isPrefix, err := reader.ReadLine()
