@@ -18,7 +18,7 @@ func Start(srvId int, hotel *logic.Hotel) {
 	go cmd.CommandHandler(hotel, commandsChan)
 
 	// Starts the servers / clients detection
-	connMg := network.ConnManager{Id: srvId, Conns: make(map[int]net.Conn), CliCh: make(chan net.Conn)}
+	connMg := network.ConnManager{Id: srvId, Conns: make(map[int]net.Conn), CliCh: make(chan net.Conn), CmdCh: commandsChan}
 	go connMg.AcceptConnections()
 	connMg.ConnectAll()
 
