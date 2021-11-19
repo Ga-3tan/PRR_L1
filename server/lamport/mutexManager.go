@@ -12,6 +12,7 @@ type MutexManager struct {
 	T        [config.NB_SERVER]MessageLamport
 }
 
+// TODO main loop and channels for receiving messages from Hotel and ConnManager
 func (m MutexManager) start() {
 	//for {
 	//	select
