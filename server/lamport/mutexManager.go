@@ -8,7 +8,7 @@ import (
 type MutexManager struct {
 	SelfId   int
 	H        int
-	AccordSC bool
+	AgreedSC bool
 	T        [config.NB_SERVER]MessageLamport
 }
 
@@ -61,6 +61,6 @@ func (m MutexManager) verifySC() {
 		}
 	}
 	if oldest {
-		m.AccordSC = true // TODO can be factorised
+		m.AgreedSC = true // TODO can be factorised
 	}
 }

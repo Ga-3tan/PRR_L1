@@ -21,7 +21,7 @@ type MessageLamport struct {
 
 type MessageSync struct {
 	Command    cmd.Command
-	CLientName string
+	ClientName string
 }
 
 func (m MessageLamport) ToString() string {
@@ -29,5 +29,5 @@ func (m MessageLamport) ToString() string {
 }
 
 func (m MessageSync) ToString() string {
-	return "SYNC " + m.CLientName + "|" + m.Command.ToString()
+	return "SYNC " + m.ClientName + "|" + m.Command.ToString()
 }
