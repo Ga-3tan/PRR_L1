@@ -14,20 +14,20 @@ const (
 )
 
 type MessageLamport struct {
-	Msg    MessageType
-	Stamp  int
-	Sender int
+	Type     MessageType
+	H        int
+	SenderID int
 }
 
 type MessageSync struct {
-	Command cmd.Command
-	Sender string
+	Command    cmd.Command
+	CLientName string
 }
 
 func (m MessageLamport) ToString() string {
-	return "LPRT " + string(m.Msg) + " " + strconv.Itoa(m.Stamp) + " " + strconv.Itoa(m.Sender)
+	return "LPRT " + string(m.Type) + " " + strconv.Itoa(m.H) + " " + strconv.Itoa(m.SenderID)
 }
 
 func (m MessageSync) ToString() string {
-	return "SYNC " + m.Sender + "|" + m.Command.ToString()
+	return "SYNC " + m.CLientName + "|" + m.Command.ToString()
 }
