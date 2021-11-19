@@ -121,6 +121,19 @@ SRV
 CLI
 ```
 
+#### Message venant d'un serveur
+##### Lamport
+
+```css
+LPRT [COMMAND]
+```
+
+##### Message de synchronisation
+
+```css
+SYNC [USERNAME]|[COMMAND]
+```
+
 ##### Réserver une chambre
 
 ```css

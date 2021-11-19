@@ -111,3 +111,14 @@ func ParseCommand(msg string, clientName string) (Command, error) {
 		return Command{}, errors.New("ERR Commande inconnue")
 	}
 }
+
+// ParseServerSyncCommand prend un SYNC USER|[commande] et la commande TODO
+func ParseServerSyncCommand(msg string) (Command, error) {
+	servSeparator := strings.Split(msg, "|")
+	username := strings.ReplaceAll(servSeparator[0], "SYNC ", "") // supprimer "SYNC "
+	command, err := ParseCommand(servSeparator[1], username)
+	if err != nil {
+		log.Println(err)
+	}
+	return command, nil
+}

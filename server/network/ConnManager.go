@@ -3,6 +3,7 @@ package network
 import (
 	"bufio"
 	"hotel/config"
+	"hotel/server/cmd"
 	"hotel/server/lamport"
 	"hotel/utils"
 	"log"
@@ -14,6 +15,9 @@ type ConnManager struct {
 	Id    int
 	Conns map[int]net.Conn
 	CliCh chan net.Conn
+	CmdCh chan cmd.Command
+	MutexCh chan lamport.MessageLamport
+	WriteCh map[int]chan string
 }
 
 func (mg *ConnManager) AcceptConnections() {
@@ -72,14 +76,43 @@ func (mg *ConnManager) serverReader(socket net.Conn) {
 
 		// Waits for client input and responds
 		for input.Scan() {
-			// TODO Read message from socket and send to MUTEX or MessageHandler
+			// TODO Read message from socket and send to MUTEX
+			incomingInput := input.Text()
+
+			if incomingInput[0:3] == "LPT" { // Lamport command
+				// TODO lamport command : send to mutex
+			} else { // Server command
+				outputCmd, err := cmd.ParseServerSyncCommand(incomingInput)
+				if err != nil {
+					log.Println(err)
+				}
+				mg.CmdCh <- outputCmd
+			}
 		}
 	}
 }
 
-func (mg *ConnManager) serverWriter(socket net.Conn) {
-	// TODO block on write channel and send message to all
-}
+// TODO serverWriter necessary ?
+
+//// serverWriter Write to one server, block on channel of this server
+//func (mg *ConnManager) serverWriter(id int) {
+//	for msg := range mg.WriteCh[id] {
+//		utils.WriteLn(mg.Conns[id], msg)
+//	}
+//}
+//
+//// writeTo to write a msg to one server by id
+//func (mg* ConnManager) writeTo(id int, msg string) {
+//	mg.WriteCh[id]<-msg
+//}
+//
+//
+//// writeToAll to write a msg to all server (except self)
+//func (mg* ConnManager) writeToALl(msg string) {
+//	for key, _ := range mg.Conns {
+//		mg.writeTo(key, msg)
+//	}
+//}
 
 func (mg *ConnManager) ConnectAll() {
 	for i := 0; i < len(config.Servers); i++ {
@@ -100,14 +133,14 @@ func (mg *ConnManager) ConnectAll() {
 	println("Connected to all servers pool")
 }
 
-func (mg *ConnManager) SendAll(message lamport.Message) {
+func (mg *ConnManager) SendAll(msg string) {
 	for id, _ := range mg.Conns {
-		if mg.Id != id {
-			mg.sendTo(id, message)
+		if mg.Id != id { // TODO mg.Conns does really contain itself ?
+			mg.sendTo(id, msg)
 		}
 	}
 }
 
-func (mg *ConnManager) sendTo(serverId int, message lamport.Message) {
-	utils.WriteLn(mg.Conns[serverId], message.ToString())
+func (mg *ConnManager) sendTo(serverId int, msg string) {
+	utils.WriteLn(mg.Conns[serverId], msg)
 }
