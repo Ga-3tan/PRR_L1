@@ -1,6 +1,9 @@
 package lamport
 
-import "strconv"
+import (
+	"hotel/server/cmd"
+	"strconv"
+)
 
 type MessageType string
 
@@ -10,12 +13,21 @@ const (
 	REL MessageType = "REL"
 )
 
-type Message struct {
+type MessageLamport struct {
 	Msg    MessageType
 	Stamp  int
 	Sender int
 }
 
-func (m Message) ToString() string {
-	return string(m.Msg) + " " + strconv.Itoa(m.Stamp) + " " + strconv.Itoa(m.Sender)
+type MessageSync struct {
+	Command cmd.Command
+	Sender string
+}
+
+func (m MessageLamport) ToString() string {
+	return "LPRT " + string(m.Msg) + " " + strconv.Itoa(m.Stamp) + " " + strconv.Itoa(m.Sender)
+}
+
+func (m MessageSync) ToString() string {
+	return "SYNC " + m.Sender + "|" + m.Command.ToString()
 }

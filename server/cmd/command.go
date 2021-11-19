@@ -11,3 +11,7 @@ type Command struct {
 	Reservation   logic.Reservation
 	ReturnContent chan string
 }
+
+func (c Command) ToString() string {
+	return string(c.Cmd) + " " + c.Reservation.ToString()
+}
