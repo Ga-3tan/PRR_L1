@@ -19,7 +19,6 @@ type MutexManager struct {
 	ConnManager        network.ConnManager // TODO à voir si on peut faire sans
 }
 
-// TODO main loop and channels for receiving messages from Hotel and ConnManager
 func (m MutexManager) Start() {
 	for {
 		select {
@@ -99,7 +98,7 @@ func (m MutexManager) rel(msg lamport.MessageLamport) {
 
 func (m MutexManager) verifySC() {
 	println("VERIFIY SC " + m.T[m.SelfId].Type)
-	if m.T[m.SelfId].Type != lamport.REQ {
+	if m.T[m.SelfId].Type != lamport.REQ {				// TODO PROBLEME ICI, m.T[m.SelfId] == EMPTY
 		println("VERIFIY SC FAILED")
 		return
 	}
