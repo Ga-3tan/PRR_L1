@@ -26,13 +26,13 @@ func Start(srvId int, hotel *logic.Hotel) {
 	for newSocket := range connMg.CliCh {
 		// Handles the new connexion
 		log.Println("LOG New connexion from " + newSocket.RemoteAddr().String())
-		go handleNewClient(newSocket, commandsChan)
+		go handleNewClient(newSocket, commandsChan, connMg)
 	}
 }
 
 // handleNewClient is used to manage a new connexion from a client
 // It records the client inputs
-func handleNewClient(socket net.Conn, commandsChan chan cmd.Command) {
+func handleNewClient(socket net.Conn, commandsChan chan cmd.Command, connMg network.ConnManager) {
 	clientName := ""
 	input := bufio.NewScanner(socket)
 
@@ -63,6 +63,10 @@ func handleNewClient(socket net.Conn, commandsChan chan cmd.Command) {
 					log.Println("LOG Aborting connexion from " + socket.RemoteAddr().String())
 					break
 				}
+
+				/* FOR TESTING PURPOSE */
+				println("SENDING SYNC CMD \"" + outputCmd.ToString() + "\"")
+				connMg.SendAll("SYNC " + clientName+"|"+outputCmd.ToString())
 
 				// Executes the command
 				commandsChan <- outputCmd

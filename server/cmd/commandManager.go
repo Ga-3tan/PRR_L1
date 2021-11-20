@@ -38,8 +38,20 @@ func CommandHandler(hotel *logic.Hotel, cmdChan chan Command) {
 			err = errors.New("ERR Erreur de commande")
 		}
 
-		if err != nil {
+		if err != nil && !newCmd.SyncCmd {
 			newCmd.ReturnContent <- err.Error()
+		} else if newCmd.SyncCmd {
+			// TODO HANDLE SYNC MESSAGE (LAMPORT)
+
+			// FOR TESTING PURPOSE ONLY, show all reservation
+			println("SYNC : " + newCmd.ToString())
+			println("SYNC : " + res)
+			for _, v := range hotel.Reservations {
+				for _, r := range v {
+					print(r.ToString()+ " ")
+				}
+				println()
+			}
 		} else {
 			newCmd.ReturnContent <- res
 		}
@@ -120,5 +132,6 @@ func ParseServerSyncCommand(msg string) (Command, error) {
 	if err != nil {
 		log.Println(err)
 	}
+	command.SyncCmd = true
 	return command, nil
 }

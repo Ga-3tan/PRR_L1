@@ -10,6 +10,24 @@ type Reservation struct {
 	NbNights int
 }
 
+// TODO CAN BE SIMPLIFIED
+/*  not very useful bc the server only sync BOOK so we can return only all properties */
 func (r Reservation) ToString() string {
-	return strconv.Itoa(r.IdRoom) + " " + strconv.Itoa(r.Day) + " " + strconv.Itoa(r.NbNights)
+	s := ""
+	if r.IdRoom != 0 {
+		s += strconv.Itoa(r.IdRoom)
+		if r.Day != 0 {
+			s += " "
+		}
+	}
+	if r.Day != 0 {
+		s += strconv.Itoa(r.Day)
+		if r.NbNights != 0 {
+			s += " "
+		}
+	}
+	if r.NbNights != 0 {
+		s += strconv.Itoa(r.NbNights)
+	}
+	return s
 }

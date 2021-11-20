@@ -50,10 +50,11 @@ func (mg *ConnManager) AcceptConnections() {
 			switch text {
 			case "SRV":
 				// New connexion from server
-				println("New connection from " + newSocket.RemoteAddr().String())
+				println("New connection from server " + newSocket.RemoteAddr().String())
 				go mg.serverReader(newSocket)
 			case "CLI":
 				// New connexion from physical client
+				println("New connection from client " + newSocket.RemoteAddr().String())
 				mg.CliCh <- newSocket
 			default:
 			}
@@ -79,10 +80,13 @@ func (mg *ConnManager) serverReader(socket net.Conn) {
 			// TODO Read message from socket and send to MUTEX
 			incomingInput := input.Text()
 
+			println("INCOMING FROM " + socket.RemoteAddr().String() + " : \"" + incomingInput + "\"")
+
 			if incomingInput[0:3] == "LPT" { // Lamport command
 				// TODO lamport command : send to mutex
 			} else { // Server command
 				outputCmd, err := cmd.ParseServerSyncCommand(incomingInput)
+				println("SERVER COMMAND : " + outputCmd.ToString())
 				if err != nil {
 					log.Println(err)
 				}
@@ -136,11 +140,11 @@ func (mg *ConnManager) ConnectAll() {
 func (mg *ConnManager) SendAll(msg string) {
 	for id, _ := range mg.Conns {
 		if mg.Id != id { // TODO mg.Conns does really contain itself ?
-			mg.sendTo(id, msg)
+			mg.SendTo(id, msg)
 		}
 	}
 }
 
-func (mg *ConnManager) sendTo(serverId int, msg string) {
+func (mg *ConnManager) SendTo(serverId int, msg string) {
 	utils.WriteLn(mg.Conns[serverId], msg)
 }
