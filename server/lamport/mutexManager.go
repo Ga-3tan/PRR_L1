@@ -2,21 +2,62 @@ package lamport
 
 import (
 	"hotel/config"
+	"hotel/server/network"
+	"log"
 	"math"
 )
 
 type MutexManager struct {
-	SelfId   int
-	H        int
-	AgreedSC bool
-	T        [config.NB_SERVER]MessageLamport
+	SelfId             int
+	H                  int
+	AgreedSC           chan struct{}
+	T                  [config.NB_SERVER]MessageLamport
+	ServerMutexCh      chan MessageType
+	MutexConnManagerCh chan MessageLamport
+	ConnManager        network.ConnManager // TODO à voir si on peut faire sans
 }
 
 // TODO main loop and channels for receiving messages from Hotel and ConnManager
-func (m MutexManager) start() {
-	//for {
-	//	select
-	//}
+func (m MutexManager) Start() {
+	for {
+		select {
+		case srvMsg := <-m.ServerMutexCh:
+			if srvMsg == ASK_SC {
+				m.askSC()
+			} else if srvMsg == END_SC {
+				m.relSC()
+			} else {
+				log.Fatal("MutexProcess: Unknown Server Message")
+			}
+		case lprtMsg := <-m.MutexConnManagerCh:
+			switch lprtMsg.Type {
+			case REQ:
+				m.req(lprtMsg)
+			case ACK:
+				m.ack(lprtMsg)
+			case REL:
+				m.rel(lprtMsg)
+			default:
+				log.Fatal("MutexProcess: Unknown Lamport Message")
+			}
+		}
+	}
+}
+
+// askSC register the REQ and send it to all others servers
+func (m MutexManager) askSC() {
+	m.H += 1
+	lprtMsg := MessageLamport{REQ, m.H, m.SelfId} // TODO selfId necessary ?
+	m.T[m.SelfId] = lprtMsg
+	m.ConnManager.SendAll(lprtMsg.ToString())
+}
+
+// relSC register the REL and send it to all others servers
+func (m MutexManager) relSC() {
+	m.H += 1
+	lprtMsg := MessageLamport{REL, m.H, m.SelfId} // TODO selfId necessary ?
+	m.T[m.SelfId] = lprtMsg
+	m.ConnManager.SendAll(lprtMsg.ToString())
 }
 
 func (m MutexManager) syncStamp(incomingStamp int) {
@@ -60,7 +101,7 @@ func (m MutexManager) verifySC() {
 			break
 		}
 	}
-	if oldest {
-		m.AgreedSC = true // TODO can be factorised
+	if oldest { // TODO can be factorised
+		m.AgreedSC<- struct{}{}
 	}
 }
