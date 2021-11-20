@@ -3,6 +3,7 @@ package clientTcp
 
 import (
 	"hotel/config"
+	"hotel/utils"
 	"io"
 	"log"
 	"net"
@@ -36,6 +37,9 @@ func Connect() net.Conn {
 	if err != nil {
 		log.Fatal(err)
 	}
+	
+	// Tells that it's a client connecting
+	utils.WriteLn(conn, "CLI")
 	return conn
 }
 
