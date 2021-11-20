@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"strings"
 )
 
 type ConnManager struct {
@@ -79,9 +80,14 @@ func (mg *ConnManager) serverReader(socket net.Conn) {
 			// TODO Read message from socket and send to MUTEX
 			incomingInput := input.Text()
 
-			if incomingInput[0:3] == "LPT" { // Lamport command
+			if incomingInput[0:4] == "LPRT" { // Lamport command
 				// TODO lamport command : send to mutex
-			} else { // Server command
+				msg, err := lamport.ParseMessage(strings.ReplaceAll(incomingInput, "LPRT ", ""))
+				if err != nil {
+					log.Println(err)
+				}
+				mg.MutexConnManagerCh<-msg
+			} else { // Server Sync command
 				outputCmd, err := cmd.ParseServerSyncCommand(incomingInput)
 				if err != nil {
 					log.Println(err)
@@ -134,7 +140,7 @@ func (mg *ConnManager) ConnectAll() {
 }
 
 func (mg *ConnManager) SendAll(msg string) {
-	for id := range mg.Conns {
+	for id := 0; id < len(config.Servers); id++ {
 		if mg.Id != id { // TODO mg.Conns does really contain itself ?
 			mg.SendTo(id, msg)
 		}
@@ -142,5 +148,5 @@ func (mg *ConnManager) SendAll(msg string) {
 }
 
 func (mg *ConnManager) SendTo(serverId int, msg string) {
-	utils.WriteLn(mg.Conns[serverId], msg)
+	utils.WriteLn(mg.Conns[config.Servers[serverId].Port], msg)
 }
