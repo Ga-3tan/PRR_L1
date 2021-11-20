@@ -11,9 +11,9 @@ import (
 	"strconv"
 )
 
-func Start() {
+func Start(srvNo int) {
 	// Connects to the server
-	conn := Connect()
+	conn := Connect(srvNo)
 
 	// Copies the os input into the created socket
 	endOfComm := make(chan struct{})
@@ -31,13 +31,13 @@ func Start() {
 	<-endOfComm
 }
 
-func Connect() net.Conn {
+func Connect(srvNo int) net.Conn {
 	// Connects to the server on localhost:8000
-	conn, err := net.Dial("tcp", config.HOST+":"+strconv.Itoa(9090))
+	conn, err := net.Dial("tcp", config.Servers[srvNo].Host+":"+strconv.Itoa(config.Servers[srvNo].Port))
 	if err != nil {
 		log.Fatal(err)
 	}
-	
+
 	// Tells that it's a client connecting
 	utils.WriteLn(conn, "CLI")
 	return conn
