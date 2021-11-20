@@ -12,19 +12,19 @@ import (
 )
 
 type ConnManager struct {
-	Id    int
-	Conns map[int]net.Conn
-	CliCh chan net.Conn
-	CmdCh chan cmd.Command
-	MutexCh chan lamport.MessageLamport
-	WriteCh map[int]chan string
+	Id                 int
+	Conns              map[int]net.Conn
+	CliCh              chan net.Conn
+	CmdCh              chan cmd.Command
+	MutexConnManagerCh chan lamport.MessageLamport
+	//WriteCh            map[int]chan string // TODO serverWriter necessary ?
 }
 
 func (mg *ConnManager) AcceptConnections() {
 	for {
 		// Accept new connections
 		port := strconv.Itoa(config.Servers[mg.Id].Port)
-		serverSocket, err := net.Listen("tcp", config.Servers[mg.Id].Host + ":" + port)
+		serverSocket, err := net.Listen("tcp", config.Servers[mg.Id].Host+":"+port)
 		log.Println("LOG Server started on " + config.Servers[mg.Id].Host + ":" + port)
 
 		// Error handle
@@ -119,7 +119,7 @@ func (mg *ConnManager) ConnectAll() {
 		if i != mg.Id {
 			for {
 				// Dials the remote server and adds the socket in the map
-				conn, err := net.Dial("tcp", config.Servers[i].Host + ":" + strconv.Itoa(config.Servers[i].Port))
+				conn, err := net.Dial("tcp", config.Servers[i].Host+":"+strconv.Itoa(config.Servers[i].Port))
 				if err == nil {
 					utils.WriteLn(conn, "SRV")
 					mg.Conns[config.Servers[i].Port] = conn
@@ -134,13 +134,13 @@ func (mg *ConnManager) ConnectAll() {
 }
 
 func (mg *ConnManager) SendAll(msg string) {
-	for id, _ := range mg.Conns {
+	for id := range mg.Conns {
 		if mg.Id != id { // TODO mg.Conns does really contain itself ?
-			mg.sendTo(id, msg)
+			mg.SendTo(id, msg)
 		}
 	}
 }
 
-func (mg *ConnManager) sendTo(serverId int, msg string) {
+func (mg *ConnManager) SendTo(serverId int, msg string) {
 	utils.WriteLn(mg.Conns[serverId], msg)
 }

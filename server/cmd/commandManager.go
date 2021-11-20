@@ -11,7 +11,7 @@ import (
 )
 
 // CommandHandler Handles concurrency and executes the given commands
-func CommandHandler(hotel *logic.Hotel, cmdChan chan Command) {
+func CommandHandler(hotel *logic.Hotel, cmdChan chan Command, agreedSC <-chan struct{}) {
 	// Checks if in debug mode
 	if config.DEBUG != 0 {
 		// Sleeps for n seconds
@@ -26,6 +26,7 @@ func CommandHandler(hotel *logic.Hotel, cmdChan chan Command) {
 		switch newCmd.Cmd {
 		case BOOK:
 			log.Println("LOG BOOK command received from " + newCmd.Reservation.Client)
+			<-agreedSC // Wait for signal from agreedSC
 			res, err = hotel.BookRoom(newCmd.Reservation.IdRoom, newCmd.Reservation.Day, newCmd.Reservation.NbNights, newCmd.Reservation.Client)
 		case ROOMS:
 			log.Println("LOG ROOMS command received")
