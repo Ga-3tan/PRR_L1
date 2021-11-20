@@ -1,7 +1,6 @@
 package lamport
 
 import (
-	"hotel/server/cmd"
 	"strconv"
 )
 
@@ -21,15 +20,6 @@ type MessageLamport struct {
 	SenderID int
 }
 
-type MessageSync struct {
-	Command    cmd.Command
-	ClientName string
-}
-
 func (m MessageLamport) ToString() string {
 	return "LPRT " + string(m.Type) + " " + strconv.Itoa(m.H) + " " + strconv.Itoa(m.SenderID)
-}
-
-func (m MessageSync) ToString() string {
-	return "SYNC " + m.ClientName + "|" + m.Command.ToString()
 }

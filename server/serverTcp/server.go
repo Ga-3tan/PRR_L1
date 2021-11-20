@@ -39,7 +39,7 @@ func Start(srvId int, hotel *logic.Hotel) {
 	}
 
 	// Start goroutine handling commands
-	go cmd.CommandHandler(hotel, commandsChan, agreedSC)
+	go cmd.CommandHandler(hotel, commandsChan, serverMutexCh,  agreedSC, connManager)
 
 	// Start goroutine mutex process
 	go mutexManager.Start()

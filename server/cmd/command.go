@@ -7,6 +7,7 @@ import (
 
 // Command represents a command sent by a client after parsing
 type Command struct {
+	SyncCmd       bool
 	Cmd           CommandType
 	Reservation   logic.Reservation
 	ReturnContent chan string
@@ -14,4 +15,8 @@ type Command struct {
 
 func (c Command) ToString() string {
 	return string(c.Cmd) + " " + c.Reservation.ToString()
+}
+
+func (c Command) ToSyncStringMessage() string {
+	return "SYNC " + c.Reservation.Client + "|" + c.ToString()
 }
