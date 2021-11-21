@@ -12,40 +12,55 @@ import (
 	"time"
 )
 
+type CommandManager struct {
+	Hotel *logic.Hotel
+	CmdChan chan cmd.Command
+	ServerMutexCh chan lamport.MessageType
+	AgreedSC chan struct{}
+	ConnManager network.ConnManager
+}
+
 // CommandHandler Handles concurrency and executes the given commands
-func CommandHandler(hotel *logic.Hotel, cmdChan chan cmd.Command, serverMutexCh chan<- lamport.MessageType,  agreedSC <-chan struct{}, connManager network.ConnManager) { // TODO Too much arguments ? Maybe make a struct "CommandManager"
+func (m *CommandManager) HandleCommands() { // TODO Too much arguments ? Maybe make a struct "CommandManager"
 	// Checks if in debug mode"
 	if config.DEBUG != 0 {
 		// Sleeps for n seconds
-		log.Println("DEBUG Server started in debug mode, now sleeping for " + strconv.Itoa(config.DEBUG_SLEEP) + " seconds ...")
+		log.Println("CommandManager>> DEBUG Server started in debug mode, now sleeping for " + strconv.Itoa(config.DEBUG_SLEEP) + " seconds ...")
 		time.Sleep(config.DEBUG_SLEEP * time.Second)
-		log.Println("DEBUG " + strconv.Itoa(config.DEBUG_SLEEP) + " seconds sleep done, checking for incoming requests")
+		log.Println("CommandManager>> DEBUG " + strconv.Itoa(config.DEBUG_SLEEP) + " seconds sleep done, checking for incoming requests")
 	}
 
-	for newCmd := range cmdChan {
+	for newCmd := range m.CmdChan {
 		var res string
 		var err error
 		switch newCmd.Cmd {
 		case cmd.BOOK:
-			log.Println("LOG BOOK command received from " + newCmd.Reservation.Client)
+			// Checks whether it is a sync or a new command
 			if !newCmd.SyncCmd { // AskSC and Wait only if it's not a sync command
-				serverMutexCh<- lamport.ASK_SC
-				<-agreedSC // Wait for signal from agreedSC
+				log.Println("CommandManager>> New BOOK command from " + newCmd.Reservation.Client)
+				m.ServerMutexCh<- lamport.ASK_SC
+				<-m.AgreedSC // Wait for signal from agreedSC
+			} else {
+				log.Println("CommandManager>> Syncing BOOK command from " + newCmd.Reservation.Client)
 			}
-			res, err = hotel.BookRoom(newCmd.Reservation.IdRoom, newCmd.Reservation.Day, newCmd.Reservation.NbNights, newCmd.Reservation.Client)
+
+			res, err = m.Hotel.BookRoom(newCmd.Reservation.IdRoom, newCmd.Reservation.Day, newCmd.Reservation.NbNights, newCmd.Reservation.Client)
+
+			// Propagates the new command and releases the SC if it was a new command
 			if !newCmd.SyncCmd { // Sync and EndSC only if it's not a sync command
-				connManager.SendAll(newCmd.ToSyncStringCommand())
-				serverMutexCh<- lamport.END_SC
+				log.Println("CommandManager>> Propagating new BOOK command to server pool")
+				m.ConnManager.SendAll(newCmd.ToSyncStringCommand())
+				m.ServerMutexCh<- lamport.END_SC
 			}
 		case cmd.ROOMS:
-			log.Println("LOG ROOMS command received")
-			res, err = hotel.GetRoomsList(newCmd.Reservation.Day, newCmd.Reservation.Client)
+			log.Println("CommandManager>> New ROOMS command received")
+			res, err = m.Hotel.GetRoomsList(newCmd.Reservation.Day, newCmd.Reservation.Client)
 		case cmd.FREE:
-			log.Println("LOG FREE command received")
-			res, err = hotel.GetFreeRoom(newCmd.Reservation.Day, newCmd.Reservation.NbNights)
+			log.Println("CommandManager>> New FREE command received")
+			res, err = m.Hotel.GetFreeRoom(newCmd.Reservation.Day, newCmd.Reservation.NbNights)
 		default:
-			log.Println("LOG Unknown command received")
-			err = errors.New("ERR Erreur de commande")
+			log.Println("CommandManager>> Unknown command received")
+			err = errors.New("CommandManager>> ERR Erreur de commande")
 		}
 
 		if !newCmd.SyncCmd {

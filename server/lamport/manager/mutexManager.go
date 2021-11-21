@@ -39,7 +39,7 @@ func (m *MutexManager) Start() {
 			} else if srvMsg == lamport.END_SC {
 				m.relSC()
 			} else {
-				log.Fatal("MutexProcess: Unknown Server Message")
+				log.Fatal("MutexManager>> Unknown Server Message")
 			}
 		case lprtMsg := <-m.MutexConnManagerCh:
 			switch lprtMsg.Type {
@@ -50,7 +50,7 @@ func (m *MutexManager) Start() {
 			case lamport.REL:
 				m.rel(lprtMsg)
 			default:
-				log.Fatal("MutexProcess: Unknown Lamport Message")
+				log.Fatal("MutexManager>> Unknown Lamport Message")
 			}
 		}
 	}
@@ -58,7 +58,7 @@ func (m *MutexManager) Start() {
 
 // askSC register the REQ and send it to all others servers
 func (m *MutexManager) askSC() {
-	log.Println("Sending askSC")
+	log.Println("MutexManager>> Sending REQ")
 	m.H += 1
 	lprtMsg := lamport.MessageLamport{Type: lamport.REQ, H: m.H, SenderID: m.SelfId}
 	log.Println("ASK SC msg TYPE: " + lprtMsg.Type)
@@ -68,7 +68,7 @@ func (m *MutexManager) askSC() {
 
 // relSC register the REL and send it to all others servers
 func (m *MutexManager) relSC() {
-	log.Println("Sending relSC")
+	log.Println("MutexManager>> Sending REL")
 	m.H += 1
 	lprtMsg := lamport.MessageLamport{Type: lamport.REL, H: m.H, SenderID: m.SelfId}
 	m.T[m.SelfId] = lprtMsg
@@ -80,7 +80,7 @@ func (m *MutexManager) syncStamp(incomingStamp int) {
 }
 
 func (m *MutexManager) req(msg lamport.MessageLamport) {
-	log.Println("Receiving req")
+	log.Println("MutexManager>> Received REQ")
 	m.syncStamp(msg.H)
 	m.T[msg.SenderID] = msg
 	if m.T[m.SelfId].Type != lamport.REQ {
@@ -92,7 +92,7 @@ func (m *MutexManager) req(msg lamport.MessageLamport) {
 }
 
 func (m *MutexManager) ack(msg lamport.MessageLamport) {
-	log.Println("Receiving ack")
+	log.Println("MutexManager>> Received ACK")
 	m.syncStamp(msg.H)
 	if m.T[msg.SenderID].Type != lamport.REQ {
 		m.T[msg.SenderID] = msg
@@ -101,24 +101,19 @@ func (m *MutexManager) ack(msg lamport.MessageLamport) {
 }
 
 func (m *MutexManager) rel(msg lamport.MessageLamport) {
-	log.Println("Receiving rel")
+	log.Println("MutexManager>> Received REL")
 	m.syncStamp(msg.H)
 	m.T[msg.SenderID] = msg
 	m.verifySC()
 }
 
 func (m *MutexManager) verifySC() {
-	log.Println("VerifySC access\nLOCAL LAMPORT ARRAY : | ")
-	for _, msg := range m.T {
-		log.Print(msg.Type + " | ")
-	}
-	log.Println()
-
 	// Return when not REQ message
 	if m.T[m.SelfId].Type != lamport.REQ {
-		log.Println("VerifySC access denied")
 		return
 	}
+
+	log.Println("MutexManager>>  Critical Section : need access, verifying access")
 
 	// Applies Lamport Logical clock algorithm
 	oldest := true
@@ -134,8 +129,8 @@ func (m *MutexManager) verifySC() {
 
 	// Checks SC whether access is granted or not
 	if oldest {
-		log.Println("VerifySC access granted")
+		log.Println("MutexManager>> Critical Section : Access granted")
 		m.AgreedSC<- struct{}{}
 	}
-	log.Println("VerifySC access denied")
+	log.Println("MutexManager>> Critical Section : Access denied")
 }

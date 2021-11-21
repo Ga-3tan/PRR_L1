@@ -24,7 +24,7 @@ func (mg *ConnManager) AcceptConnections() {
 	// Accept new connections
 	port := strconv.Itoa(config.Servers[mg.Id].Port)
 	serverSocket, err := net.Listen("tcp", config.Servers[mg.Id].Host+":"+port)
-	log.Println("Server started on " + config.Servers[mg.Id].Host + ":" + port)
+	log.Println("ConnManager>> Server started on " + config.Servers[mg.Id].Host + ":" + port)
 
 	// Error handle
 	if err != nil {
@@ -38,7 +38,7 @@ func (mg *ConnManager) AcceptConnections() {
 	}(serverSocket)
 
 	// Accepts new connexions and handles them
-	log.Println("Now accepting new client/server connexions")
+	log.Println("ConnManager>> Now accepting new client/server connexions")
 	for {
 		newSocket, err := serverSocket.Accept()
 
@@ -49,7 +49,7 @@ func (mg *ConnManager) AcceptConnections() {
 		switch text {
 		case "SRV":
 			// New connexion from server
-			log.Println("New connection from " + newSocket.RemoteAddr().String())
+			log.Println("ConnManager>> New connection from " + newSocket.RemoteAddr().String())
 			go mg.serverReader(newSocket)
 		case "CLI":
 			// New connexion from physical client
@@ -67,7 +67,7 @@ func (mg *ConnManager) AcceptConnections() {
 
 func (mg *ConnManager) serverReader(socket net.Conn) {
 	// Log
-	println("Now listening incoming messages from " + socket.RemoteAddr().String())
+	log.Println("ConnManager>> Now listening incoming messages from " + socket.RemoteAddr().String())
 
 	for {
 		input := bufio.NewScanner(socket)
@@ -108,8 +108,8 @@ func (mg *ConnManager) ConnectAll() {
 		}
 	}
 
-	// Log (connexion successful
-	log.Println("Connected to all servers pool")
+	// Log connection successful
+	log.Println("ConnManager>> Connected to all servers pool")
 }
 
 func (mg *ConnManager) SendAll(msg string) {

@@ -24,6 +24,7 @@ func Start(srvId int, hotel *logic.Hotel) {
 	var cliCh = make(chan net.Conn)
 	var agreedSC = make(chan struct{})
 
+	// Network manager (receives and sends network messages in the server pool)
 	connManager := network.ConnManager{
 		Id:                 srvId,
 		Conns:              make(map[int]net.Conn),
@@ -32,6 +33,7 @@ func Start(srvId int, hotel *logic.Hotel) {
 		MutexConnManagerCh: mutexConnManagerCh,
 	}
 
+	// Mutex manager, implements Lamport algorithm for distributed operations on the hotel
 	mutexManager := lprtManager.MutexManager{
 		SelfId:             srvId,
 		AgreedSC:           agreedSC,
@@ -40,17 +42,25 @@ func Start(srvId int, hotel *logic.Hotel) {
 		ConnManager:        connManager,
 	}
 
-	// Start goroutine handling commands
-	go cmdManager.CommandHandler(hotel, commandsChan, serverMutexCh,  agreedSC, connManager)
+	// Handles commands to execute on the hotel, uses the mutex to check concurrent accesses and obtain SC access
+	commandHandler := cmdManager.CommandManager{
+		Hotel: hotel,
+		CmdChan: commandsChan,
+		ServerMutexCh: serverMutexCh,
+		AgreedSC: agreedSC,
+		ConnManager: connManager,
+	}
+
+	// Connects all the servers together
+	go connManager.AcceptConnections()
+	connManager.ConnectAll()
+	log.Println("SERVER>> Server now ready to accept clients requests")
 
 	// Start goroutine mutex process
 	go mutexManager.Start()
 
-	// Start goroutine network process
-	go connManager.AcceptConnections()
-
-	// Connect to all servers (wait until all connected)
-	connManager.ConnectAll()
+	// Start goroutine handling commands
+	go commandHandler.HandleCommands()
 
 	// Waits for clients connection
 	for newSocket := range cliCh {
@@ -90,7 +100,7 @@ func handleNewClient(socket net.Conn, commandsChan chan cmd.Command) {
 			} else {
 				// Checks if command is STOP
 				if outputCmd.Cmd == cmd.STOP {
-					log.Println("LOG Aborting connexion from " + socket.RemoteAddr().String())
+					log.Println("SERVER>> LOG Aborting connexion from " + socket.RemoteAddr().String())
 					break
 				}
 
@@ -103,7 +113,7 @@ func handleNewClient(socket net.Conn, commandsChan chan cmd.Command) {
 			}
 		}
 	}
-	log.Println("LOG Closing client handler " + socket.RemoteAddr().String())
+	log.Println("SERVER>> LOG Closing client handler " + socket.RemoteAddr().String())
 
 	// Closes the connexion
 	err := socket.Close()
