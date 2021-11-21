@@ -50,7 +50,7 @@ func Start(srvId int, hotel *logic.Hotel) {
 	go connManager.AcceptConnections()
 
 	// Connect to all servers (wait until all connected)
-	connManager.ConnectAll() // TODO à voir s'il faut une confirmation de tous les autres serveurs
+	connManager.ConnectAll()
 
 	// Waits for clients connection
 	for newSocket := range cliCh {

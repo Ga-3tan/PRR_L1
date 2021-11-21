@@ -9,7 +9,6 @@ import (
 	"log"
 	"net"
 	"strconv"
-	"strings"
 )
 
 type ConnManager struct {
@@ -18,52 +17,50 @@ type ConnManager struct {
 	CliCh              chan net.Conn
 	CmdCh              chan cmd.Command
 	MutexConnManagerCh chan lamport.MessageLamport
-	//WriteCh            map[int]chan string // TODO serverWriter necessary ?
 }
 
 func (mg *ConnManager) AcceptConnections() {
-	for {
-		// Accept new connections
-		port := strconv.Itoa(config.Servers[mg.Id].Port)
-		serverSocket, err := net.Listen("tcp", config.Servers[mg.Id].Host+":"+port)
-		log.Println("LOG Server started on " + config.Servers[mg.Id].Host + ":" + port)
 
-		// Error handle
+	// Accept new connections
+	port := strconv.Itoa(config.Servers[mg.Id].Port)
+	serverSocket, err := net.Listen("tcp", config.Servers[mg.Id].Host+":"+port)
+	log.Println("Server started on " + config.Servers[mg.Id].Host + ":" + port)
+
+	// Error handle
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func(serverSocket net.Listener) {
+		err := serverSocket.Close()
 		if err != nil {
 			log.Fatal(err)
 		}
-		defer func(serverSocket net.Listener) {
-			err := serverSocket.Close()
-			if err != nil {
-				log.Fatal(err)
-			}
-		}(serverSocket)
+	}(serverSocket)
 
-		// Accepts new connexions and handles them
-		log.Println("LOG Now accepting new client/server connexions")
-		for {
-			newSocket, err := serverSocket.Accept()
+	// Accepts new connexions and handles them
+	log.Println("Now accepting new client/server connexions")
+	for {
+		newSocket, err := serverSocket.Accept()
 
-			input := bufio.NewScanner(newSocket)
-			input.Scan()
-			text := input.Text()
+		input := bufio.NewScanner(newSocket)
+		input.Scan()
+		text := input.Text()
 
-			switch text {
-			case "SRV":
-				// New connexion from server
-				println("New connection from " + newSocket.RemoteAddr().String())
-				go mg.serverReader(newSocket)
-			case "CLI":
-				// New connexion from physical client
-				mg.CliCh <- newSocket
-			default:
-			}
+		switch text {
+		case "SRV":
+			// New connexion from server
+			log.Println("New connection from " + newSocket.RemoteAddr().String())
+			go mg.serverReader(newSocket)
+		case "CLI":
+			// New connexion from physical client
+			mg.CliCh <- newSocket
+		default:
+		}
 
-			// Error handle
-			if err != nil {
-				log.Print(err)
-				continue
-			}
+		// Error handle
+		if err != nil {
+			log.Print(err)
+			continue
 		}
 	}
 }
@@ -77,50 +74,24 @@ func (mg *ConnManager) serverReader(socket net.Conn) {
 
 		// Waits for client input and responds
 		for input.Scan() {
-			// TODO Read message from socket and send to MUTEX
 			incomingInput := input.Text()
 
 			if incomingInput[0:4] == "LPRT" { // Lamport command
-				// TODO lamport command : send to mutex
-				msg, err := lamport.ParseMessage(strings.ReplaceAll(incomingInput, "LPRT ", ""))
+				msg, err := lamport.ParseMessage(incomingInput)
 				if err != nil {
-					log.Println(err)
+					log.Fatal(err)
 				}
-				// TODO Send empty message in case of error ?
 				mg.MutexConnManagerCh<-msg
 			} else { // Server Sync command
 				outputCmd, err := cmd.ParseServerSyncCommand(incomingInput)
 				if err != nil {
-					log.Println(err)
+					log.Fatal(err)
 				}
-				// TODO send empty cmd in case of error ?
 				mg.CmdCh <- outputCmd
 			}
 		}
 	}
 }
-
-// TODO serverWriter necessary ?
-
-//// serverWriter Write to one server, block on channel of this server
-//func (mg *ConnManager) serverWriter(id int) {
-//	for msg := range mg.WriteCh[id] {
-//		utils.WriteLn(mg.Conns[id], msg)
-//	}
-//}
-//
-//// writeTo to write a msg to one server by id
-//func (mg* ConnManager) writeTo(id int, msg string) {
-//	mg.WriteCh[id]<-msg
-//}
-//
-//
-//// writeToAll to write a msg to all server (except self)
-//func (mg* ConnManager) writeToALl(msg string) {
-//	for key, _ := range mg.Conns {
-//		mg.writeTo(key, msg)
-//	}
-//}
 
 func (mg *ConnManager) ConnectAll() {
 	for i := 0; i < len(config.Servers); i++ {
@@ -138,12 +109,12 @@ func (mg *ConnManager) ConnectAll() {
 	}
 
 	// Log (connexion successful
-	println("Connected to all servers pool")
+	log.Println("Connected to all servers pool")
 }
 
 func (mg *ConnManager) SendAll(msg string) {
 	for id := 0; id < len(config.Servers); id++ {
-		if mg.Id != id { // TODO mg.Conns does really contain itself ?
+		if mg.Id != id {
 			mg.SendTo(id, msg)
 		}
 	}

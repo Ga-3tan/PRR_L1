@@ -74,7 +74,7 @@ func ParseCommand(msg string, clientName string) (Command, error) {
 	}
 }
 
-// ParseServerSyncCommand prend un SYNC USER|[commande] et la commande TODO
+// ParseServerSyncCommand take a SYNC USER|[commande] et la commande
 func ParseServerSyncCommand(msg string) (Command, error) {
 	servSeparator := strings.Split(msg, "|")
 	username := strings.ReplaceAll(servSeparator[0], "SYNC ", "") // supprimer "SYNC "

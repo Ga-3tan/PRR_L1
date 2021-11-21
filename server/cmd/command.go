@@ -13,10 +13,10 @@ type Command struct {
 	ReturnContent chan string
 }
 
-func (c Command) ToString() string {
+func (c *Command) ToString() string {
 	return string(c.Cmd) + " " + c.Reservation.ToString()
 }
 
-func (c Command) ToSyncStringMessage() string {
+func (c *Command) ToSyncStringCommand() string {
 	return "SYNC " + c.Reservation.Client + "|" + c.ToString()
 }

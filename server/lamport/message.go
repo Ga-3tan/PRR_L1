@@ -20,6 +20,6 @@ type MessageLamport struct {
 	SenderID int
 }
 
-func (m MessageLamport) ToString() string {
+func (m *MessageLamport) ToString() string {
 	return "LPRT " + string(m.Type) + " " + strconv.Itoa(m.H) + " " + strconv.Itoa(m.SenderID)
 }

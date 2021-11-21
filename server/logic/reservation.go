@@ -10,6 +10,6 @@ type Reservation struct {
 	NbNights int
 }
 
-func (r Reservation) ToString() string {
+func (r *Reservation) ToString() string {
 	return strconv.Itoa(r.IdRoom) + " " + strconv.Itoa(r.Day) + " " + strconv.Itoa(r.NbNights)
 }

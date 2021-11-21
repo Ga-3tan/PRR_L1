@@ -34,7 +34,7 @@ func CommandHandler(hotel *logic.Hotel, cmdChan chan cmd.Command, serverMutexCh 
 			}
 			res, err = hotel.BookRoom(newCmd.Reservation.IdRoom, newCmd.Reservation.Day, newCmd.Reservation.NbNights, newCmd.Reservation.Client)
 			if !newCmd.SyncCmd { // Sync and EndSC only if it's not a sync command
-				connManager.SendAll(newCmd.ToSyncStringMessage())
+				connManager.SendAll(newCmd.ToSyncStringCommand())
 				serverMutexCh<- lamport.END_SC
 			}
 		case cmd.ROOMS:
