@@ -19,7 +19,16 @@ type MutexManager struct {
 	ConnManager        network.ConnManager // TODO à voir si on peut faire sans
 }
 
-func (m MutexManager) Start() {
+func (m *MutexManager) Start() {
+
+	for i := 0; i < len(m.T); i++ {
+		m.T[i] = lamport.MessageLamport{
+			Type:     lamport.REL,
+			H:        0,
+			SenderID: i,
+		}
+	}
+
 	for {
 		select {
 		case srvMsg := <-m.ServerMutexCh:
@@ -46,7 +55,7 @@ func (m MutexManager) Start() {
 }
 
 // askSC register the REQ and send it to all others servers
-func (m MutexManager) askSC() {
+func (m *MutexManager) askSC() {
 	println("askSC")
 	m.H += 1
 	lprtMsg := lamport.MessageLamport{lamport.REQ, m.H, m.SelfId} // TODO selfId necessary ?
@@ -56,7 +65,7 @@ func (m MutexManager) askSC() {
 }
 
 // relSC register the REL and send it to all others servers
-func (m MutexManager) relSC() {
+func (m *MutexManager) relSC() {
 	println("relSC")
 	m.H += 1
 	lprtMsg := lamport.MessageLamport{Type: lamport.REL, H: m.H, SenderID: m.SelfId} // TODO selfId necessary ?
@@ -64,11 +73,11 @@ func (m MutexManager) relSC() {
 	m.ConnManager.SendAll(lprtMsg.ToString())
 }
 
-func (m MutexManager) syncStamp(incomingStamp int) {
+func (m *MutexManager) syncStamp(incomingStamp int) {
 	m.H = int(math.Max(float64(incomingStamp), float64(m.H))) + 1 // TODO not clean ?
 }
 
-func (m MutexManager) req(msg lamport.MessageLamport) {
+func (m *MutexManager) req(msg lamport.MessageLamport) {
 	println("req")
 	m.syncStamp(msg.H)
 	m.T[msg.SenderID] = msg
@@ -80,7 +89,7 @@ func (m MutexManager) req(msg lamport.MessageLamport) {
 	m.verifySC()
 }
 
-func (m MutexManager) ack(msg lamport.MessageLamport) {
+func (m *MutexManager) ack(msg lamport.MessageLamport) {
 	println("ack")
 	m.syncStamp(msg.H)
 	if m.T[msg.SenderID].Type != lamport.REQ {
@@ -89,16 +98,21 @@ func (m MutexManager) ack(msg lamport.MessageLamport) {
 	m.verifySC()
 }
 
-func (m MutexManager) rel(msg lamport.MessageLamport) {
+func (m *MutexManager) rel(msg lamport.MessageLamport) {
 	println("rel")
 	m.syncStamp(msg.H)
 	m.T[msg.SenderID] = msg
 	m.verifySC()
 }
 
-func (m MutexManager) verifySC() {
-	println("VERIFIY SC " + m.T[m.SelfId].Type)
-	if m.T[m.SelfId].Type != lamport.REQ {				// TODO PROBLEME ICI, m.T[m.SelfId] == EMPTY
+func (m *MutexManager) verifySC() {
+	print("LOCAL LAMPORT ARRAY : | ")
+	for _, msg := range m.T {
+		print(msg.Type + " | ")
+	}
+	println()
+
+	if m.T[m.SelfId].Type != lamport.REQ {
 		println("VERIFIY SC FAILED")
 		return
 	}

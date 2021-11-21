@@ -86,12 +86,14 @@ func (mg *ConnManager) serverReader(socket net.Conn) {
 				if err != nil {
 					log.Println(err)
 				}
+				// TODO Send empty message in case of error ?
 				mg.MutexConnManagerCh<-msg
 			} else { // Server Sync command
 				outputCmd, err := cmd.ParseServerSyncCommand(incomingInput)
 				if err != nil {
 					log.Println(err)
 				}
+				// TODO send empty cmd in case of error ?
 				mg.CmdCh <- outputCmd
 			}
 		}

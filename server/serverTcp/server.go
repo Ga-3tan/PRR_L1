@@ -6,7 +6,7 @@ import (
 	"hotel/server/cmd"
 	cmdManager "hotel/server/cmd/manager"
 	"hotel/server/lamport"
-	lprtManager"hotel/server/lamport/manager"
+	lprtManager "hotel/server/lamport/manager"
 	"hotel/server/logic"
 	"hotel/server/network"
 	"hotel/utils"
