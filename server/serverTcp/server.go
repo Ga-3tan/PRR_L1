@@ -4,6 +4,9 @@ package serverTcp
 import (
 	"bufio"
 	"hotel/server/cmd"
+	cmdManager "hotel/server/cmd/manager"
+	"hotel/server/lamport"
+	lprtManager "hotel/server/lamport/manager"
 	"hotel/server/logic"
 	"hotel/server/network"
 	"hotel/utils"
@@ -13,17 +16,44 @@ import (
 
 // Start runs a new instance of a server
 func Start(srvId int, hotel *logic.Hotel) {
-	// Start goroutine handling commands
-	var commandsChan = make(chan cmd.Command)
-	go cmd.CommandHandler(hotel, commandsChan)
 
-	// Starts the servers / clients detection
-	connMg := network.ConnManager{Id: srvId, Conns: make(map[int]net.Conn), CliCh: make(chan net.Conn), CmdCh: commandsChan}
-	go connMg.AcceptConnections()
-	connMg.ConnectAll()
+	/* channels */
+	var serverMutexCh = make(chan lamport.MessageType)         // server <=> mutex
+	var mutexConnManagerCh = make(chan lamport.MessageLamport) //  mutex <=> network
+	var commandsChan = make(chan cmd.Command)
+	var cliCh = make(chan net.Conn)
+	var agreedSC = make(chan struct{})
+
+	connManager := network.ConnManager{
+		Id:                 srvId,
+		Conns:              make(map[int]net.Conn),
+		CliCh:              cliCh,
+		CmdCh:              commandsChan,
+		MutexConnManagerCh: mutexConnManagerCh,
+	}
+
+	mutexManager := lprtManager.MutexManager{
+		SelfId:             srvId,
+		AgreedSC:           agreedSC,
+		ServerMutexCh:      serverMutexCh,
+		MutexConnManagerCh: mutexConnManagerCh,
+		ConnManager:        connManager,
+	}
+
+	// Start goroutine handling commands
+	go cmdManager.CommandHandler(hotel, commandsChan, serverMutexCh,  agreedSC, connManager)
+
+	// Start goroutine mutex process
+	go mutexManager.Start()
+
+	// Start goroutine network process
+	go connManager.AcceptConnections()
+
+	// Connect to all servers (wait until all connected)
+	connManager.ConnectAll() // TODO à voir s'il faut une confirmation de tous les autres serveurs
 
 	// Waits for clients connection
-	for newSocket := range connMg.CliCh {
+	for newSocket := range cliCh {
 		// Handles the new connexion
 		log.Println("LOG New connexion from " + newSocket.RemoteAddr().String())
 		go handleNewClient(newSocket, commandsChan)
