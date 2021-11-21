@@ -4,7 +4,9 @@ package serverTcp
 import (
 	"bufio"
 	"hotel/server/cmd"
+	cmdManager "hotel/server/cmd/manager"
 	"hotel/server/lamport"
+	lprtManager "hotel/server/lamport/manager"
 	"hotel/server/logic"
 	"hotel/server/network"
 	"hotel/utils"
@@ -30,7 +32,7 @@ func Start(srvId int, hotel *logic.Hotel) {
 		MutexConnManagerCh: mutexConnManagerCh,
 	}
 
-	mutexManager := lamport.MutexManager{
+	mutexManager := lprtManager.MutexManager{
 		SelfId:             srvId,
 		AgreedSC:           agreedSC,
 		ServerMutexCh:      serverMutexCh,
@@ -39,7 +41,7 @@ func Start(srvId int, hotel *logic.Hotel) {
 	}
 
 	// Start goroutine handling commands
-	go cmd.CommandHandler(hotel, commandsChan, serverMutexCh,  agreedSC, connManager)
+	go cmdManager.CommandHandler(hotel, commandsChan, serverMutexCh,  agreedSC, connManager)
 
 	// Start goroutine mutex process
 	go mutexManager.Start()
