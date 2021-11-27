@@ -20,9 +20,10 @@ func (hotel *Hotel) isAlreadyBooked(idRoom int, day int, nbNights int) (bool, Re
 
 	// Pour chaque réservation de la chambre, on vérifie si le premier et
 	// le dernier jour ne sont pas dans les bornes d'une autre réservation
+	// ou si la réservation n'est pas inclue dans la nouvelle
 	for _, res := range hotel.Reservations[idRoom] {
 		resLastDay := res.Day + res.NbNights - 1
-		if (day >= res.Day && day <= resLastDay) || (lastDay >= res.Day && lastDay <= resLastDay) {
+		if (day >= res.Day && day <= resLastDay) || (lastDay >= res.Day && lastDay <= resLastDay) || (day >= res.Day && lastDay <= resLastDay) || (res.Day >= day && resLastDay <= lastDay) {
 			return true, res
 		}
 	}

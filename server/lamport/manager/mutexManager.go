@@ -58,17 +58,16 @@ func (m *MutexManager) Start() {
 
 // askSC register the REQ and send it to all others servers
 func (m *MutexManager) askSC() {
-	log.Println("MutexManager>> Sending REQ")
+	log.Println("MutexManager>> Sending REQ to all")
 	m.H += 1
 	lprtMsg := lamport.MessageLamport{Type: lamport.REQ, H: m.H, SenderID: m.SelfId}
-	log.Println("ASK SC msg TYPE: " + lprtMsg.Type)
 	m.T[m.SelfId] = lprtMsg
 	m.ConnManager.SendAll(lprtMsg.ToString())
 }
 
 // relSC register the REL and send it to all others servers
 func (m *MutexManager) relSC() {
-	log.Println("MutexManager>> Sending REL")
+	log.Println("MutexManager>> Sending REL to all")
 	m.H += 1
 	lprtMsg := lamport.MessageLamport{Type: lamport.REL, H: m.H, SenderID: m.SelfId}
 	m.T[m.SelfId] = lprtMsg
@@ -80,19 +79,19 @@ func (m *MutexManager) syncStamp(incomingStamp int) {
 }
 
 func (m *MutexManager) req(msg lamport.MessageLamport) {
-	log.Println("MutexManager>> Received REQ")
+	log.Println("MutexManager>> Received REQ from " + strconv.Itoa(msg.SenderID))
 	m.syncStamp(msg.H)
 	m.T[msg.SenderID] = msg
 	if m.T[m.SelfId].Type != lamport.REQ {
 		lprtMsg := lamport.MessageLamport{Type: lamport.ACK, H: m.H, SenderID: m.SelfId}
-		log.Println(lprtMsg.ToString() + "   " + strconv.Itoa(msg.SenderID))
+		log.Println("MutexManager>> Sending ACK to " + strconv.Itoa(msg.SenderID))
 		m.ConnManager.SendTo(msg.SenderID, lprtMsg.ToString())
 	}
 	m.verifySC()
 }
 
 func (m *MutexManager) ack(msg lamport.MessageLamport) {
-	log.Println("MutexManager>> Received ACK")
+	log.Println("MutexManager>> Received ACK from " + strconv.Itoa(msg.SenderID))
 	m.syncStamp(msg.H)
 	if m.T[msg.SenderID].Type != lamport.REQ {
 		m.T[msg.SenderID] = msg
@@ -101,7 +100,7 @@ func (m *MutexManager) ack(msg lamport.MessageLamport) {
 }
 
 func (m *MutexManager) rel(msg lamport.MessageLamport) {
-	log.Println("MutexManager>> Received REL")
+	log.Println("MutexManager>> Received REL from " + strconv.Itoa(msg.SenderID))
 	m.syncStamp(msg.H)
 	m.T[msg.SenderID] = msg
 	m.verifySC()
