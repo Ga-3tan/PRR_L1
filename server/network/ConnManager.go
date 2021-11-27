@@ -17,6 +17,7 @@ type ConnManager struct {
 	CliCh              chan net.Conn
 	CmdCh              chan cmd.Command
 	MutexConnManagerCh chan lamport.MessageLamport
+	WaitSyncCh		   chan struct{}
 }
 
 func (mg *ConnManager) AcceptConnections() {
@@ -71,6 +72,7 @@ func (mg *ConnManager) serverReader(socket net.Conn) {
 
 	for {
 		input := bufio.NewScanner(socket)
+		nbSyncs := 0
 
 		// Waits for client input and responds
 		for input.Scan() {
@@ -82,6 +84,12 @@ func (mg *ConnManager) serverReader(socket net.Conn) {
 					log.Fatal(err)
 				}
 				mg.MutexConnManagerCh<-msg
+			} else if incomingInput[0:4] == "SYNC" { // Sync OK
+				nbSyncs++
+				if nbSyncs == len(mg.Conns) - 1 { // All pool has sync the command
+					nbSyncs = 0
+					mg.WaitSyncCh <- struct{}{}
+				}
 			} else { // Server Sync command
 				outputCmd, err := cmd.ParseServerSyncCommand(incomingInput)
 				if err != nil {

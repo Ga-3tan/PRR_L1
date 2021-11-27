@@ -2,14 +2,11 @@ package manager
 
 import (
 	"errors"
-	"hotel/config"
 	"hotel/server/cmd"
 	"hotel/server/lamport"
 	"hotel/server/logic"
 	"hotel/server/network"
 	"log"
-	"strconv"
-	"time"
 )
 
 type CommandManager struct {
@@ -22,14 +19,6 @@ type CommandManager struct {
 
 // CommandHandler Handles concurrency and executes the given commands
 func (m *CommandManager) HandleCommands() { // TODO Too much arguments ? Maybe make a struct "CommandManager"
-	// Checks if in debug mode"
-	if config.DEBUG != 0 {
-		// Sleeps for n seconds
-		log.Println("CommandManager>> DEBUG Server started in debug mode, now sleeping for " + strconv.Itoa(config.DEBUG_SLEEP) + " seconds ...")
-		time.Sleep(config.DEBUG_SLEEP * time.Second)
-		log.Println("CommandManager>> DEBUG " + strconv.Itoa(config.DEBUG_SLEEP) + " seconds sleep done, checking for incoming requests")
-	}
-
 	for newCmd := range m.CmdChan {
 		var res string
 		var err error
@@ -50,7 +39,11 @@ func (m *CommandManager) HandleCommands() { // TODO Too much arguments ? Maybe m
 			if !newCmd.SyncCmd { // Sync and EndSC only if it's not a sync command
 				log.Println("CommandManager>> Propagating new BOOK command to server pool")
 				m.ConnManager.SendAll(newCmd.ToSyncStringCommand())
+				<-m.ConnManager.WaitSyncCh // Waits for sync to complete
+				log.Println("CommandManager>> Sync complete, ready to release critical section")
 				m.ServerMutexCh<- lamport.END_SC
+			} else { // It was a sync cmd, notifies the command creator
+				m.ConnManager.SendAll(string(lamport.SYNC))
 			}
 		case cmd.ROOMS:
 			log.Println("CommandManager>> New ROOMS command received")

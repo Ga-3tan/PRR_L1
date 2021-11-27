@@ -17,9 +17,12 @@ type MutexManager struct {
 	ServerMutexCh      chan lamport.MessageType
 	MutexConnManagerCh chan lamport.MessageLamport
 	ConnManager        network.ConnManager
+	inSC			   bool
 }
 
 func (m *MutexManager) Start() {
+	// Not in SC at start
+	m.inSC = false
 
 	// Init Lamport array with REL 0 values
 	for i := 0; i < len(m.T); i++ {
@@ -103,6 +106,7 @@ func (m *MutexManager) rel(msg lamport.MessageLamport) {
 	log.Println("MutexManager>> Received REL from " + strconv.Itoa(msg.SenderID))
 	m.syncStamp(msg.H)
 	m.T[msg.SenderID] = msg
+	m.inSC = false
 	m.verifySC()
 }
 
@@ -112,7 +116,7 @@ func (m *MutexManager) verifySC() {
 		return
 	}
 
-	log.Println("MutexManager>>  Critical Section : need access, verifying access")
+	log.Println("MutexManager>> Critical Section : need access, verifying access")
 
 	// Applies Lamport Logical clock algorithm
 	oldest := true
@@ -129,7 +133,10 @@ func (m *MutexManager) verifySC() {
 	// Checks SC whether access is granted or not
 	if oldest {
 		log.Println("MutexManager>> Critical Section : Access granted")
-		m.AgreedSC<- struct{}{}
+		if !m.inSC {
+			m.inSC = true
+			m.AgreedSC<- struct{}{}
+		}
 	} else {
 		log.Println("MutexManager>> Critical Section : Access denied")
 	}
