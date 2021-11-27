@@ -5,6 +5,7 @@ import (
 	"hotel/client/clientTcp"
 	"hotel/config"
 	"hotel/utils"
+	"math/rand"
 	"net"
 	"os"
 	"strconv"
@@ -26,7 +27,7 @@ func TestMain(m *testing.M) {
 }
 
 func setup() {
-	conn = clientTcp.Connect()
+	conn = clientTcp.Connect(rand.Intn(config.NB_SERVERS))
 	utils.ReadLn(conn)
 	utils.WriteLn(conn, "TestUser")
 	utils.ReadLn(conn)

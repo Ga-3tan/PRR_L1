@@ -13,7 +13,7 @@ type MutexManager struct {
 	SelfId             int
 	H                  int
 	AgreedSC           chan struct{}
-	T                  [config.NB_SERVER]lamport.MessageLamport
+	T                  [config.NB_SERVERS]lamport.MessageLamport
 	ServerMutexCh      chan lamport.MessageType
 	MutexConnManagerCh chan lamport.MessageLamport
 	ConnManager        network.ConnManager
