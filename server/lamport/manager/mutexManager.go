@@ -130,6 +130,7 @@ func (m *MutexManager) verifySC() {
 	if oldest {
 		log.Println("MutexManager>> Critical Section : Access granted")
 		m.AgreedSC<- struct{}{}
+	} else {
+		log.Println("MutexManager>> Critical Section : Access denied")
 	}
-	log.Println("MutexManager>> Critical Section : Access denied")
 }
