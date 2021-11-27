@@ -18,8 +18,8 @@ import (
 func Start(srvId int, hotel *logic.Hotel) {
 
 	/* channels */
-	var serverMutexCh = make(chan lamport.MessageType)         // server <=> mutex
-	var mutexConnManagerCh = make(chan lamport.MessageLamport) //  mutex <=> network
+	var serverMutexCh = make(chan lamport.MessageType, 100)         // server <=> mutex
+	var mutexConnManagerCh = make(chan lamport.MessageLamport, 100) //  mutex <=> network
 	var commandsChan = make(chan cmd.Command)
 	var cliCh = make(chan net.Conn)
 	var agreedSC = make(chan struct{})

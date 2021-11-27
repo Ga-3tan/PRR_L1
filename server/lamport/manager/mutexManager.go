@@ -112,7 +112,7 @@ func (m *MutexManager) verifySC() {
 		return
 	}
 
-	log.Println("MutexManager>>  Critical Section : need access, verifying access")
+	log.Println("MutexManager>> Critical Section : need access, verifying access")
 
 	// Applies Lamport Logical clock algorithm
 	oldest := true
