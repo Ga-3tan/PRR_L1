@@ -21,7 +21,7 @@ Plus d'information disponible en générant une documentation grâce à l'utilit
 
 #### Structure par rapport au cours
 
-![](G:\1%20-%20OneDrive\OneDrive\Documents\2%20-%20HEIG-VD\PRR\Labos\LAB001_2_ProgrammeGo\PRR_LAB_Reservation_Hotel\md-img\2021-11-28-08-59-16-image.png)
+![](md-img/2021-11-28-08-59-16-image.png)
 
 - Le bloc `Processus Client` correspond au paquet `serverTcp`
 
@@ -271,7 +271,7 @@ DEBUG = 1
 DEBUG_SLEEP = X // Remplacer X par le nombre de secondes à attendre
 ```
 
-<img src="file:///G:/1%20-%20OneDrive/OneDrive/Documents/2%20-%20HEIG-VD/PRR/Labos/LAB001_2_ProgrammeGo/PRR_LAB_Reservation_Hotel/md-img/2021-11-28-09-30-40-image.png" title="" alt="" data-align="center">
+<img src="md-img/2021-11-28-09-30-40-image.png" title="" alt="" data-align="center">
 
 **2 - Préparer plusieurs terminaux de commande**
 
@@ -294,7 +294,7 @@ server 1
 server 2
 ```
 
-<img src="file:///G:/1%20-%20OneDrive/OneDrive/Documents/2%20-%20HEIG-VD/PRR/Labos/LAB001_2_ProgrammeGo/PRR_LAB_Reservation_Hotel/md-img/2021-11-28-09-29-48-image.png" title="" alt="" data-align="center">
+<img src="md-img/2021-11-28-09-29-48-image.png" title="" alt="" data-align="center">
 
 **3 - Provoquer l'accès concurrent**
 
@@ -308,7 +308,7 @@ BOOK 1 2 3
 
 > Cette commande demande la réservation de la chambre 1 depuis le jour 2 pendant 3 nuits
 
-<img src="file:///G:/1%20-%20OneDrive/OneDrive/Documents/2%20-%20HEIG-VD/PRR/Labos/LAB001_2_ProgrammeGo/PRR_LAB_Reservation_Hotel/md-img/2021-11-28-09-34-54-image.png" title="" alt="" data-align="center">
+<img src="md-img/2021-11-28-09-34-54-image.png" title="" alt="" data-align="center">
 
 **4 - Résultat de la manipulation**
 
@@ -316,7 +316,7 @@ BOOK 1 2 3
 
 -> L'un des clients aura donc obtenu la réservation et l'autre reçevra un message de refus, l'accès concurent aura été provoqué et  correctement géré par l'algorithme de Lamport afin que l'état de l'hotel soit le même sur tous les serveurs.
 
-<img title="" src="file:///G:/1%20-%20OneDrive/OneDrive/Documents/2%20-%20HEIG-VD/PRR/Labos/LAB001_2_ProgrammeGo/PRR_LAB_Reservation_Hotel/md-img/2021-11-28-09-35-35-image.png" alt="" data-align="center">
+<img title="" src="md-img/2021-11-28-09-35-35-image.png" alt="" data-align="center">
 
 Le log des serveurs permet de suivre l'exécution de l'algorithme de Lamport. Les accès à la section critique et les synchronisation de commandes sont mises en évidence.
 
