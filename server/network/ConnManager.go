@@ -15,9 +15,10 @@ type ConnManager struct {
 	Id                 int
 	Conns              map[int]net.Conn
 	CliCh              chan net.Conn
-	CmdCh              chan cmd.Command
+	CmdSyncCh          chan cmd.SyncCommand
 	MutexConnManagerCh chan lamport.MessageLamport
 	WaitSyncCh		   chan struct{}
+	nbSyncs			   int
 }
 
 func (mg *ConnManager) AcceptConnections() {
@@ -72,7 +73,6 @@ func (mg *ConnManager) serverReader(socket net.Conn) {
 
 	for {
 		input := bufio.NewScanner(socket)
-		nbSyncs := 0
 
 		// Waits for client input and responds
 		for input.Scan() {
@@ -84,10 +84,10 @@ func (mg *ConnManager) serverReader(socket net.Conn) {
 					log.Fatal(err)
 				}
 				mg.MutexConnManagerCh<-msg
-			} else if incomingInput[0:4] == "SYNC" { // Sync OK
-				nbSyncs++
-				if nbSyncs == len(mg.Conns) - 1 { // All pool has sync the command
-					nbSyncs = 0
+			} else if incomingInput[0:4] == string(lamport.SYNC) { // Sync OK
+				mg.nbSyncs++
+				if mg.nbSyncs == len(mg.Conns) { // All pool has sync the command
+					mg.nbSyncs = 0
 					mg.WaitSyncCh <- struct{}{}
 				}
 			} else { // Server Sync command
@@ -95,7 +95,7 @@ func (mg *ConnManager) serverReader(socket net.Conn) {
 				if err != nil {
 					log.Fatal(err)
 				}
-				mg.CmdCh <- outputCmd
+				mg.CmdSyncCh <- outputCmd
 			}
 		}
 	}
@@ -109,7 +109,7 @@ func (mg *ConnManager) ConnectAll() {
 				conn, err := net.Dial("tcp", config.Servers[i].Host+":"+strconv.Itoa(config.Servers[i].Port))
 				if err == nil {
 					utils.WriteLn(conn, "SRV")
-					mg.Conns[config.Servers[i].Port] = conn
+					mg.Conns[i] = conn
 					break
 				}
 			}
@@ -129,5 +129,5 @@ func (mg *ConnManager) SendAll(msg string) {
 }
 
 func (mg *ConnManager) SendTo(serverId int, msg string) {
-	utils.WriteLn(mg.Conns[config.Servers[serverId].Port], msg)
+	utils.WriteLn(mg.Conns[serverId], msg)
 }

@@ -22,20 +22,21 @@ func Start(srvId int, hotel *logic.Hotel) {
 
 	/* channels */
 	var serverMutexCh = make(chan lamport.MessageType, 100)         // server <=> mutex
-	var mutexConnManagerCh = make(chan lamport.MessageLamport, 100) //  mutex <=> network
+	var mutexConnManagerCh = make(chan lamport.MessageLamport, 100) // mutex <=> network
 	var commandsChan = make(chan cmd.Command, 100)
+	var commandsSyncChan = make(chan cmd.SyncCommand, 100)
 	var cliCh = make(chan net.Conn, 100)
-	var agreedSC = make(chan struct{}, 100)
-	var waitSyncCh = make(chan struct{}, 100)
+	var agreedSC = make(chan struct{})
+	var waitSyncCh = make(chan struct{})
 
 	// Network manager (receives and sends network messages in the server pool)
 	connManager := network.ConnManager{
 		Id:                 srvId,
 		Conns:              make(map[int]net.Conn),
 		CliCh:              cliCh,
-		CmdCh:              commandsChan,
+		CmdSyncCh:          commandsSyncChan,
 		MutexConnManagerCh: mutexConnManagerCh,
-		WaitSyncCh:			waitSyncCh,
+		WaitSyncCh:         waitSyncCh,
 	}
 
 	// Mutex manager, implements Lamport algorithm for distributed operations on the hotel
@@ -51,6 +52,7 @@ func Start(srvId int, hotel *logic.Hotel) {
 	commandHandler := cmdManager.CommandManager{
 		Hotel: hotel,
 		CmdChan: commandsChan,
+		CmdSyncChan: commandsSyncChan,
 		ServerMutexCh: serverMutexCh,
 		AgreedSC: agreedSC,
 		ConnManager: connManager,
@@ -83,6 +85,7 @@ func Start(srvId int, hotel *logic.Hotel) {
 
 	// Start goroutine handling commands
 	go commandHandler.HandleCommands()
+	go commandHandler.HandleSyncCommands()
 
 	for {}
 }

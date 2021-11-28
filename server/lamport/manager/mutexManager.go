@@ -22,7 +22,7 @@ type MutexManager struct {
 
 func (m *MutexManager) Start() {
 	// Not in SC at start
-	m.inSC = false
+	m.inSC = false;
 
 	// Init Lamport array with REL 0 values
 	for i := 0; i < len(m.T); i++ {
@@ -74,6 +74,8 @@ func (m *MutexManager) relSC() {
 	m.H += 1
 	lprtMsg := lamport.MessageLamport{Type: lamport.REL, H: m.H, SenderID: m.SelfId}
 	m.T[m.SelfId] = lprtMsg
+	m.inSC = false
+	log.Println("MutexManager>> ------------- EXITING CRITICAL SECTION -------------")
 	m.ConnManager.SendAll(lprtMsg.ToString())
 }
 
@@ -106,11 +108,17 @@ func (m *MutexManager) rel(msg lamport.MessageLamport) {
 	log.Println("MutexManager>> Received REL from " + strconv.Itoa(msg.SenderID))
 	m.syncStamp(msg.H)
 	m.T[msg.SenderID] = msg
-	m.inSC = false
 	m.verifySC()
 }
 
 func (m *MutexManager) verifySC() {
+	// Array log
+	out := "MutexManager>> Array state : | "
+	for _, msg := range m.T {
+		out += strconv.Itoa(msg.SenderID) + "->" + string(msg.Type) + " " + strconv.Itoa(msg.H) + " | "
+	}
+	log.Println(out)
+
 	// Return when not REQ message
 	if m.T[m.SelfId].Type != lamport.REQ {
 		return
@@ -135,6 +143,7 @@ func (m *MutexManager) verifySC() {
 		log.Println("MutexManager>> Critical Section : Access granted")
 		if !m.inSC {
 			m.inSC = true
+			log.Println("MutexManager>> ------------- ENTERING CRITICAL SECTION -------------")
 			m.AgreedSC<- struct{}{}
 		}
 	} else {
