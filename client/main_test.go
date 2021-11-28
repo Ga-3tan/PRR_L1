@@ -5,6 +5,7 @@ import (
 	"hotel/client/clientTcp"
 	"hotel/config"
 	"hotel/utils"
+	"math/rand"
 	"net"
 	"os"
 	"strconv"
@@ -26,7 +27,7 @@ func TestMain(m *testing.M) {
 }
 
 func setup() {
-	conn = clientTcp.Connect()
+	conn = clientTcp.Connect(rand.Intn(config.NB_SERVERS))
 	utils.ReadLn(conn)
 	utils.WriteLn(conn, "TestUser")
 	utils.ReadLn(conn)
@@ -98,44 +99,6 @@ func TestFreeRoomWhenAllRoomsForTheDayAreFull(t *testing.T) {
 
 	doTest(tests, t)
 }
-
-//func TestShowRoomAvailability(t *testing.T) {
-//
-//	// we book day 12 for room 1-8
-//	for i := 1; i <= 8; i++ {
-//		utils.WriteLn(conn, "BOOK " + strconv.Itoa(i) + " 12 1")
-//		utils.ReadLn(conn)
-//	}
-//
-//	query := "ROOMS 12"
-//	fmt.Println("Testing query :")
-//	fmt.Println(query)
-//	utils.WriteLn(conn, query)
-//
-//	availability := "RESERVE"
-//
-//	for i := 1; i <= config.MAX_ROOMS; i++ {
-//		reply := utils.ReadLn(conn)
-//		fmt.Println("Server response :")
-//		fmt.Println(reply)
-//		if reply != "| Chambre: " + strconv.Itoa(i) + ", Status: " + availability {
-//			fmt.Println(">> Test ROOMS -> FAIL")
-//			t.Error("\nRECEIVED\n" + reply + "\nEXPECTED\n| Chambre: " + strconv.Itoa(i) + ", Status: " + availability)
-//		}
-//		if i == 8 {
-//			availability = "LIBRE"
-//		}
-//	}
-//
-//	reply := utils.ReadLn(conn)
-//	fmt.Println("Server response :")
-//	fmt.Println(reply)
-//
-//	if reply != "END" {
-//		fmt.Println(">> Test ROOMS -> FAIL")
-//		t.Error("\nRECEIVED\n" + reply + "\nEXPECTED\nEND")
-//	}
-//}
 
 func doTest(tests []Test, t *testing.T) {
 	for index, test := range tests {

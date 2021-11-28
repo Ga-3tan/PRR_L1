@@ -17,21 +17,26 @@ import (
 // Start runs a new instance of a server
 func Start(srvId int, hotel *logic.Hotel) {
 
-	/* channels */
-	var serverMutexCh = make(chan lamport.MessageType)         // server <=> mutex
-	var mutexConnManagerCh = make(chan lamport.MessageLamport) //  mutex <=> network
-	var commandsChan = make(chan cmd.Command)
-	var cliCh = make(chan net.Conn)
+	// Channels initialisation
+	var serverMutexCh = make(chan lamport.MessageType, 100)         // server <=> mutex
+	var mutexConnManagerCh = make(chan lamport.MessageLamport, 100) // mutex <=> network
+	var commandsChan = make(chan cmd.Command, 100)
+	var commandsSyncChan = make(chan cmd.SyncCommand, 100)
+	var cliCh = make(chan net.Conn, 100)
 	var agreedSC = make(chan struct{})
+	var waitSyncCh = make(chan struct{})
 
+	// Network manager (receives and sends network messages in the server pool)
 	connManager := network.ConnManager{
 		Id:                 srvId,
 		Conns:              make(map[int]net.Conn),
 		CliCh:              cliCh,
-		CmdCh:              commandsChan,
+		CmdSyncCh:          commandsSyncChan,
 		MutexConnManagerCh: mutexConnManagerCh,
+		WaitSyncCh:         waitSyncCh,
 	}
 
+	// Mutex manager, implements Lamport algorithm for distributed operations on the hotel
 	mutexManager := lprtManager.MutexManager{
 		SelfId:             srvId,
 		AgreedSC:           agreedSC,
@@ -40,22 +45,32 @@ func Start(srvId int, hotel *logic.Hotel) {
 		ConnManager:        connManager,
 	}
 
-	// Start goroutine handling commands
-	go cmdManager.CommandHandler(hotel, commandsChan, serverMutexCh,  agreedSC, connManager)
+	// Handles commands to execute on the hotel, uses the mutex to check concurrent accesses and obtain SC access
+	commandHandler := cmdManager.CommandManager{
+		Hotel: hotel,
+		CmdChan: commandsChan,
+		CmdSyncChan: commandsSyncChan,
+		ServerMutexCh: serverMutexCh,
+		AgreedSC: agreedSC,
+		ConnManager: connManager,
+	}
+
+	// Connects all the servers together
+	go connManager.AcceptConnections()
+	connManager.ConnectAll()
+	log.Println("SERVER>> Server now ready to accept clients requests")
 
 	// Start goroutine mutex process
 	go mutexManager.Start()
 
-	// Start goroutine network process
-	go connManager.AcceptConnections()
-
-	// Connect to all servers (wait until all connected)
-	connManager.ConnectAll() // TODO à voir s'il faut une confirmation de tous les autres serveurs
+	// Start goroutine handling commands
+	go commandHandler.HandleCommands()
+	go commandHandler.HandleSyncCommands()
 
 	// Waits for clients connection
 	for newSocket := range cliCh {
 		// Handles the new connexion
-		log.Println("LOG New connexion from " + newSocket.RemoteAddr().String())
+		log.Println("SERVER>> New connexion from client " + newSocket.RemoteAddr().String())
 		go handleNewClient(newSocket, commandsChan)
 	}
 }
@@ -90,7 +105,7 @@ func handleNewClient(socket net.Conn, commandsChan chan cmd.Command) {
 			} else {
 				// Checks if command is STOP
 				if outputCmd.Cmd == cmd.STOP {
-					log.Println("LOG Aborting connexion from " + socket.RemoteAddr().String())
+					log.Println("SERVER>> LOG Aborting connexion from " + socket.RemoteAddr().String())
 					break
 				}
 
@@ -103,7 +118,7 @@ func handleNewClient(socket net.Conn, commandsChan chan cmd.Command) {
 			}
 		}
 	}
-	log.Println("LOG Closing client handler " + socket.RemoteAddr().String())
+	log.Println("SERVER>> LOG Closing client handler " + socket.RemoteAddr().String())
 
 	// Closes the connexion
 	err := socket.Close()

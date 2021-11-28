@@ -74,14 +74,15 @@ func ParseCommand(msg string, clientName string) (Command, error) {
 	}
 }
 
-// ParseServerSyncCommand prend un SYNC USER|[commande] et la commande TODO
-func ParseServerSyncCommand(msg string) (Command, error) {
+// ParseServerSyncCommand take a SYNC USER|[commande] et la commande
+func ParseServerSyncCommand(msg string) (SyncCommand, error) {
 	servSeparator := strings.Split(msg, "|")
-	username := strings.ReplaceAll(servSeparator[0], "SYNC ", "") // supprimer "SYNC "
-	command, err := ParseCommand(servSeparator[1], username)
+	fromId, errConv := strconv.Atoi(strings.ReplaceAll(servSeparator[0], "SYNC ", "")) // supprimer "SYNC "
+	if errConv != nil { log.Fatal("Impossible to convert received data to sync command") }
+	username := servSeparator[1]
+	command, err := ParseCommand(servSeparator[2], username)
 	if err != nil {
 		log.Println(err)
 	}
-	command.SyncCmd = true
-	return command, nil
+	return SyncCommand{AuthorId: fromId, Command: command}, nil
 }
