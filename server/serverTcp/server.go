@@ -3,6 +3,7 @@ package serverTcp
 
 import (
 	"bufio"
+	"hotel/config"
 	"hotel/server/cmd"
 	cmdManager "hotel/server/cmd/manager"
 	"hotel/server/lamport"
@@ -12,6 +13,8 @@ import (
 	"hotel/utils"
 	"log"
 	"net"
+	"strconv"
+	"time"
 )
 
 // Start runs a new instance of a server
@@ -19,18 +22,21 @@ func Start(srvId int, hotel *logic.Hotel) {
 
 	/* channels */
 	var serverMutexCh = make(chan lamport.MessageType, 100)         // server <=> mutex
-	var mutexConnManagerCh = make(chan lamport.MessageLamport, 100) //  mutex <=> network
-	var commandsChan = make(chan cmd.Command)
-	var cliCh = make(chan net.Conn)
+	var mutexConnManagerCh = make(chan lamport.MessageLamport, 100) // mutex <=> network
+	var commandsChan = make(chan cmd.Command, 100)
+	var commandsSyncChan = make(chan cmd.SyncCommand, 100)
+	var cliCh = make(chan net.Conn, 100)
 	var agreedSC = make(chan struct{})
+	var waitSyncCh = make(chan struct{})
 
 	// Network manager (receives and sends network messages in the server pool)
 	connManager := network.ConnManager{
 		Id:                 srvId,
 		Conns:              make(map[int]net.Conn),
 		CliCh:              cliCh,
-		CmdCh:              commandsChan,
+		CmdSyncCh:          commandsSyncChan,
 		MutexConnManagerCh: mutexConnManagerCh,
+		WaitSyncCh:         waitSyncCh,
 	}
 
 	// Mutex manager, implements Lamport algorithm for distributed operations on the hotel
@@ -46,6 +52,7 @@ func Start(srvId int, hotel *logic.Hotel) {
 	commandHandler := cmdManager.CommandManager{
 		Hotel: hotel,
 		CmdChan: commandsChan,
+		CmdSyncChan: commandsSyncChan,
 		ServerMutexCh: serverMutexCh,
 		AgreedSC: agreedSC,
 		ConnManager: connManager,
@@ -56,18 +63,31 @@ func Start(srvId int, hotel *logic.Hotel) {
 	connManager.ConnectAll()
 	log.Println("SERVER>> Server now ready to accept clients requests")
 
+	// Waits for clients connection
+	go func() {
+		for newSocket := range cliCh {
+			// Handles the new connexion
+			log.Println("SERVER>> New connexion from client " + newSocket.RemoteAddr().String())
+			go handleNewClient(newSocket, commandsChan)
+		}
+	}()
+
+	// Checks if in debug mode"
+	if config.DEBUG != 0 {
+		// Sleeps for n seconds
+		log.Println("CommandManager>> DEBUG Server started in debug mode, now sleeping for " + strconv.Itoa(config.DEBUG_SLEEP) + " seconds ...")
+		time.Sleep(config.DEBUG_SLEEP * time.Second)
+		log.Println("CommandManager>> DEBUG " + strconv.Itoa(config.DEBUG_SLEEP) + " seconds sleep done, checking for incoming requests")
+	}
+
 	// Start goroutine mutex process
 	go mutexManager.Start()
 
 	// Start goroutine handling commands
 	go commandHandler.HandleCommands()
+	go commandHandler.HandleSyncCommands()
 
-	// Waits for clients connection
-	for newSocket := range cliCh {
-		// Handles the new connexion
-		log.Println("LOG New connexion from " + newSocket.RemoteAddr().String())
-		go handleNewClient(newSocket, commandsChan)
-	}
+	for {}
 }
 
 // handleNewClient is used to manage a new connexion from a client

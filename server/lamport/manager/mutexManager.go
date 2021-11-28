@@ -17,9 +17,12 @@ type MutexManager struct {
 	ServerMutexCh      chan lamport.MessageType
 	MutexConnManagerCh chan lamport.MessageLamport
 	ConnManager        network.ConnManager
+	inSC			   bool
 }
 
 func (m *MutexManager) Start() {
+	// Not in SC at start
+	m.inSC = false;
 
 	// Init Lamport array with REL 0 values
 	for i := 0; i < len(m.T); i++ {
@@ -71,6 +74,8 @@ func (m *MutexManager) relSC() {
 	m.H += 1
 	lprtMsg := lamport.MessageLamport{Type: lamport.REL, H: m.H, SenderID: m.SelfId}
 	m.T[m.SelfId] = lprtMsg
+	m.inSC = false
+	log.Println("MutexManager>> ------------- EXITING CRITICAL SECTION -------------")
 	m.ConnManager.SendAll(lprtMsg.ToString())
 }
 
@@ -107,6 +112,13 @@ func (m *MutexManager) rel(msg lamport.MessageLamport) {
 }
 
 func (m *MutexManager) verifySC() {
+	// Array log
+	out := "MutexManager>> Array state : | "
+	for _, msg := range m.T {
+		out += strconv.Itoa(msg.SenderID) + "->" + string(msg.Type) + " " + strconv.Itoa(msg.H) + " | "
+	}
+	log.Println(out)
+
 	// Return when not REQ message
 	if m.T[m.SelfId].Type != lamport.REQ {
 		return
@@ -129,7 +141,11 @@ func (m *MutexManager) verifySC() {
 	// Checks SC whether access is granted or not
 	if oldest {
 		log.Println("MutexManager>> Critical Section : Access granted")
-		m.AgreedSC<- struct{}{}
+		if !m.inSC {
+			m.inSC = true
+			log.Println("MutexManager>> ------------- ENTERING CRITICAL SECTION -------------")
+			m.AgreedSC<- struct{}{}
+		}
 	} else {
 		log.Println("MutexManager>> Critical Section : Access denied")
 	}

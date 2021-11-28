@@ -131,7 +131,7 @@ LPRT [COMMAND]
 ##### Message de synchronisation
 
 ```css
-SYNC [USERNAME]|[COMMAND]
+SYNC [FROM]|[USERNAME]|[COMMAND]
 ```
 
 ##### Réserver une chambre
