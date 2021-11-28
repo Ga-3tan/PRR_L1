@@ -3,7 +3,6 @@ package serverTcp
 
 import (
 	"bufio"
-	"hotel/config"
 	"hotel/server/cmd"
 	cmdManager "hotel/server/cmd/manager"
 	"hotel/server/lamport"
@@ -13,14 +12,12 @@ import (
 	"hotel/utils"
 	"log"
 	"net"
-	"strconv"
-	"time"
 )
 
 // Start runs a new instance of a server
 func Start(srvId int, hotel *logic.Hotel) {
 
-	/* channels */
+	// Channels initialisation
 	var serverMutexCh = make(chan lamport.MessageType, 100)         // server <=> mutex
 	var mutexConnManagerCh = make(chan lamport.MessageLamport, 100) // mutex <=> network
 	var commandsChan = make(chan cmd.Command, 100)
@@ -63,23 +60,6 @@ func Start(srvId int, hotel *logic.Hotel) {
 	connManager.ConnectAll()
 	log.Println("SERVER>> Server now ready to accept clients requests")
 
-	// Waits for clients connection
-	go func() {
-		for newSocket := range cliCh {
-			// Handles the new connexion
-			log.Println("SERVER>> New connexion from client " + newSocket.RemoteAddr().String())
-			go handleNewClient(newSocket, commandsChan)
-		}
-	}()
-
-	// Checks if in debug mode"
-	if config.DEBUG != 0 {
-		// Sleeps for n seconds
-		log.Println("CommandManager>> DEBUG Server started in debug mode, now sleeping for " + strconv.Itoa(config.DEBUG_SLEEP) + " seconds ...")
-		time.Sleep(config.DEBUG_SLEEP * time.Second)
-		log.Println("CommandManager>> DEBUG " + strconv.Itoa(config.DEBUG_SLEEP) + " seconds sleep done, checking for incoming requests")
-	}
-
 	// Start goroutine mutex process
 	go mutexManager.Start()
 
@@ -87,7 +67,12 @@ func Start(srvId int, hotel *logic.Hotel) {
 	go commandHandler.HandleCommands()
 	go commandHandler.HandleSyncCommands()
 
-	for {}
+	// Waits for clients connection
+	for newSocket := range cliCh {
+		// Handles the new connexion
+		log.Println("SERVER>> New connexion from client " + newSocket.RemoteAddr().String())
+		go handleNewClient(newSocket, commandsChan)
+	}
 }
 
 // handleNewClient is used to manage a new connexion from a client

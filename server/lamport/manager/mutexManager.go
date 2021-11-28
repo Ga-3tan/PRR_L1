@@ -1,3 +1,4 @@
+// Package manager contains the Lamport algorithm bloc
 package manager
 
 import (
@@ -9,6 +10,7 @@ import (
 	"strconv"
 )
 
+// MutexManager One of the three main components of the program, represents the Lamport algorithm bloc
 type MutexManager struct {
 	SelfId             int
 	H                  int
@@ -20,6 +22,7 @@ type MutexManager struct {
 	inSC			   bool
 }
 
+// Start Initiates the Lamport algorithm and blocks on the Lamport channel
 func (m *MutexManager) Start() {
 	// Not in SC at start
 	m.inSC = false;
@@ -59,7 +62,12 @@ func (m *MutexManager) Start() {
 	}
 }
 
-// askSC register the REQ and send it to all others servers
+// syncStamp Updates the Lamport stamp with the right value
+func (m *MutexManager) syncStamp(incomingStamp int) {
+	m.H = int(math.Max(float64(incomingStamp), float64(m.H))) + 1
+}
+
+// askSC Asks for the critical section, notifies all by sending a REQ message
 func (m *MutexManager) askSC() {
 	log.Println("MutexManager>> Sending REQ to all")
 	m.H += 1
@@ -68,7 +76,7 @@ func (m *MutexManager) askSC() {
 	m.ConnManager.SendAll(lprtMsg.ToString())
 }
 
-// relSC register the REL and send it to all others servers
+// relSC Exits the critical section, notifies all by sending a REL message
 func (m *MutexManager) relSC() {
 	log.Println("MutexManager>> Sending REL to all")
 	m.H += 1
@@ -79,10 +87,7 @@ func (m *MutexManager) relSC() {
 	m.ConnManager.SendAll(lprtMsg.ToString())
 }
 
-func (m *MutexManager) syncStamp(incomingStamp int) {
-	m.H = int(math.Max(float64(incomingStamp), float64(m.H))) + 1
-}
-
+// req Called when a new REQ message is received
 func (m *MutexManager) req(msg lamport.MessageLamport) {
 	log.Println("MutexManager>> Received REQ from " + strconv.Itoa(msg.SenderID))
 	m.syncStamp(msg.H)
@@ -95,6 +100,7 @@ func (m *MutexManager) req(msg lamport.MessageLamport) {
 	m.verifySC()
 }
 
+// ack Called when a new ACK message is received
 func (m *MutexManager) ack(msg lamport.MessageLamport) {
 	log.Println("MutexManager>> Received ACK from " + strconv.Itoa(msg.SenderID))
 	m.syncStamp(msg.H)
@@ -104,6 +110,7 @@ func (m *MutexManager) ack(msg lamport.MessageLamport) {
 	m.verifySC()
 }
 
+// rel Called when a new REL message is received
 func (m *MutexManager) rel(msg lamport.MessageLamport) {
 	log.Println("MutexManager>> Received REL from " + strconv.Itoa(msg.SenderID))
 	m.syncStamp(msg.H)
@@ -111,6 +118,7 @@ func (m *MutexManager) rel(msg lamport.MessageLamport) {
 	m.verifySC()
 }
 
+// verifySC Checks if the critical section can be accessed
 func (m *MutexManager) verifySC() {
 	// Array log
 	out := "MutexManager>> Array state : | "

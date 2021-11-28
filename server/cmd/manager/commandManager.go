@@ -1,15 +1,19 @@
+// Package manager contains the server logic bloc
 package manager
 
 import (
 	"errors"
+	"hotel/config"
 	"hotel/server/cmd"
 	"hotel/server/lamport"
 	"hotel/server/logic"
 	"hotel/server/network"
 	"log"
 	"strconv"
+	"time"
 )
 
+// CommandManager One of the three main components of the program, represents the server logic bloc
 type CommandManager struct {
 	Hotel *logic.Hotel
 	CmdChan chan cmd.Command
@@ -19,8 +23,16 @@ type CommandManager struct {
 	ConnManager network.ConnManager
 }
 
-// HandleCommands Handles concurrency and executes the given commands
+// HandleCommands Handles concurrency and executes the new given commands
 func (m *CommandManager) HandleCommands() {
+	// Checks if in debug mode
+	if config.DEBUG != 0 {
+		// Sleeps for n seconds
+		log.Println("DEBUG>> Server started in debug mode, now sleeping for " + strconv.Itoa(config.DEBUG_SLEEP) + " seconds ...")
+		time.Sleep(config.DEBUG_SLEEP * time.Second)
+		log.Println("DEBUG>> " + strconv.Itoa(config.DEBUG_SLEEP) + " seconds sleep done, checking for incoming requests")
+	}
+
 	for newCmd := range m.CmdChan {
 		var res string
 		var err error

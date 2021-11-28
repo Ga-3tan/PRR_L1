@@ -11,6 +11,7 @@ import (
 	"strconv"
 )
 
+// Start Launches a new client process
 func Start(srvNo int) {
 	// Connects to the server
 	conn := Connect(srvNo)
@@ -31,6 +32,7 @@ func Start(srvNo int) {
 	<-endOfComm
 }
 
+// Connect initiates a new connection to a given server
 func Connect(srvNo int) net.Conn {
 	// Connects to the server on localhost:8000
 	conn, err := net.Dial("tcp", config.Servers[srvNo].Host+":"+strconv.Itoa(config.Servers[srvNo].Port))
@@ -43,6 +45,7 @@ func Connect(srvNo int) net.Conn {
 	return conn
 }
 
+// Disconnect stops the connection from the server
 func Disconnect(conn net.Conn) {
 	err := conn.Close()
 	if err != nil {

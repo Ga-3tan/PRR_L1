@@ -1,10 +1,8 @@
-
-
-# PRR | Laboratoire 1 - Réservation de chambres d'hôtel
+# PRR | Laboratoire 2 - Réservation de chambres d'hôtel
 
 ## Installation
 
-### 0 - Structure du projet
+### Structure du projet
 
 Le projet est consitué de deux principaux dossiers : `client` et `server`
 
@@ -12,30 +10,42 @@ Chacun de ces dossiers contient un ficheir `main.go` qui représente le point d'
 
 Le code est ensuite divisé dans divers packets qui séparent les différents aspects des programmes.
 
-- Les packets `clientTcp` et `serverTcp` contiennent tout ce qui touche aux connexions tcp des programmes
-- Les packets `utils` et `config` contiennent du code utilisé par les deux programmes 
-- Le packet `cmd` contient tout ce qui touche aux commandes utilisateur
+- Les paquets `clientTcp` et `serverTcp` contiennent les séquences de démarrage d'un client et d'un serveur (Création des channels et lancement de toutes les goroutines)
+- Les paquets `utils` et `config` contiennent du code utilisé par les deux programmes 
 - Le packet `logic` regroupe tout ce qui touche à la logique de réservation de chambres de l'hôtel
+- Le paquet `cmd` contient tout ce qui touche aux commandes utilisateur (**Manager de commandes**)
+- Le paquet `lamport` contient l'implémentation de l'algorithme de Lamport pour l'exclusion mutuelle du pool de serveurs réparti (**Manager du mutex**)
+- Le paquet `lamport` contient toute la logique d'interconnexion des serveurs comprennant la réception et l'envoi de messages sur les sockets réseau (**Manager du réseau**)
 
-Plus d'information est disponible en générant une documentation grâce à l'utilitaire `godoc`
+Plus d'information disponible en générant une documentation grâce à l'utilitaire `godoc`
 
-### 1 - Cloner le repository
+#### Structure par rapport au cours
+
+![](G:\1%20-%20OneDrive\OneDrive\Documents\2%20-%20HEIG-VD\PRR\Labos\LAB001_2_ProgrammeGo\PRR_LAB_Reservation_Hotel\md-img\2021-11-28-08-59-16-image.png)
+
+- Le bloc `Processus Client` correspond au paquet `serverTcp`
+
+- Le bloc `Processus Mutex` correspond au paquet `lamport`
+
+- Le bloc `Processus Réseau` correspond au paquet `network`
+
+### Cloner le repository
 
 Pour commencer, ouvrir un terminal et exécuter la commande suivante :
 
 ```bash
-git clone git@github.com:Ga-3tan/PRR_L1_Reservation_Hotel.git
+git clone git@github.com:Ga-3tan/PRR_LAB_Reservation_Hotel.git
 ```
 
 ou
 
 ```bash
-git clone https://github.com/Ga-3tan/PRR_L1_Reservation_Hotel.git
+git clone https://github.com/Ga-3tan/PRR_LAB_Reservation_Hotel.git
 ```
 
 Un dossier va se créer avec tout le contenu du laboratoire. Il faut ensuite build le client et le serveur pour pouvoir les utiliser.
 
-### 2 - Build le projet
+### Build le projet
 
 **Build le serveur**
 
@@ -61,11 +71,17 @@ go build
 
 Un fichier `client` sera crée et pourra être lancé dans un terminal.
 
-### 3 - Utiliser le client et le serveur
+### Utiliser le client et le serveur
 
-Maintenant que les deux programes ont été build, il est possible de les lancer dans plusieurs terminaux de commande. Il est possible de lancer plusieures instances de clients mais uniquement un seul serveur.
+Maintenant que les deux programes ont été build, il est possible de les lancer dans plusieurs terminaux de commande.
 
-### 4 - Lancer les tests
+Initialement, le fichier de configuration `config/config.go` demande le lancement de **trois serveurs** de numéros 0, 1 et 2. Les clients peuvent être lancés sans limite. Ce fichier de configuration peut être modifié à volonté, tant qu'il reste valide.
+
+> Au lancement, un serveur prend un numéro en argument de programme
+
+> Au lancement, un client peut prendre un numéro de serveur sur lequel se connecter (si aucun numéro, alors aléatoire)
+
+### Lancer les tests
 
 Pour lancer les tests il suffit d'ouvrir un terminal dans le dossier `PRR_L1_Reservation_Hotel/client` et lancer la commande suivante.
 
@@ -93,66 +109,97 @@ Ces valeurs sont modifiables dans le fichier `config.go` qui se trouve dans le d
 - Le fichier `config.go` dans le dossier `PRR_L1_Reservation_Hotel/config` contient les paramètres modifiables du programme
 - Une documentation peut être générée grâce à l'utilitaire `godoc`
 - L'utilitaire `go race` ne relève aucun problème d'accès concurrent pendant l'utilisation du serveur et de plusieurs clients
+- Gestion des 
 
-**Ne fonctionne pas**
+**Corrigé du premier laboratoire**
 
-- Le test pour vérifier la commande `ROOMS` ne fonctionne pas. Le test est commenté dans le fichier `main_test`dans le dossier `PRR_L1_Reservation_Hotel/client`. (La commande fonctionne sans problèmes et retourne des résultats corrects)
+- Les réservations se chevauchant ne sont plus acceptées
+
+**Nouveautés du second laboratoire**
+
+- Interconnexion du pool de serveurs
+- Connexion d'un client sur n'importe quel serveur
+- Gestion de la concurrence du système distribué avec l'algorithme de Lamport
 
 ## Protocole
 
-### Spécificités
+**Spécificités**
 
-- Une chambre réservée le jour 1 pour 5 nuits sera libre le jour 6
-- Les numéros de chambre et de jours commencent à 1
+> -> Une chambre réservée le jour 1 pour 5 nuits sera libre le jour 6
+> 
+> -> Les numéros de chambre et de jours commencent à 1
 
-### Commandes
+### Messages réseau
 
-#### Connexion 
-##### Premier message lors d'une connexion :
-##### d'un serveur
+#### Connexion
+
+Lorsqu'un serveur ou un client se connecte à un serveur, le premier message est envoyé par celui qui se connecte afin d'indiquer son type.
+
+**Un serveur qui se connecte envoie :**
 
 ```css
 SRV
 ```
 
-##### d'un client
+**Un client qui se connecte envoie :**
 
 ```css
 CLI
 ```
 
-#### Message venant d'un serveur
-##### Lamport
+#### Messages venant d'un serveur
+
+**Message de Lamport**
 
 ```css
-LPRT [COMMAND]
+LPRT [MESSAGE]
 ```
 
-##### Message de synchronisation
+> [MESSAGE] -> La commande avec son estampille et l'id de l'émetteur(ex. REQ 3 0)
+
+**Commande de synchronisation**
 
 ```css
 SYNC [FROM]|[USERNAME]|[COMMAND]
 ```
 
-##### Réserver une chambre
+> [FROM] -> Id de l'émetteur source de la commande
+> 
+> [USERNAME] -> Nom du client ayant fait la commande
+> 
+> [COMMAND] -> La commande à synchroniser dans le système de l'hotel (ex. BOOK 1 2 3)
+
+**Réponse de synchronisation**
+
+Après synchronisation d'une commande externe, un serveur répond à l'émetteur de la commande de synchronisation afin qu'il puisse libérer la section critique.
+
+```css
+SYOK
+```
+
+Le serveur ayant lancé la commande de synchronisation va donc reçevoir une confirmation de tous les autres serveurs et pourra ensuite libérer la section critique en continuant l'exécution de l'algorithme de Lamport.
+
+## Commandes client
+
+**Réserver une chambre**
 
 ```css
 BOOK [n° de chambre] [jour] [nb de nuits] 
 ```
 
-##### Lister les disponibilités des chambres
+**Lister les disponibilités des chambres**
 
 ```css
 ROOMS [jour]
 ```
 
-##### Une chambre disponible pour un séjour précisé
+**Une chambre disponible pour un séjour précisé**
 
 ```css
 FREE [jour] [nb de nuits]
 ```
 
-##### Quitter le service
+**Quitter le service**
 
 ```css
 STOP
@@ -196,13 +243,15 @@ FREE 5 2
 OK chambre 1 disponible
 ```
 
-## Guide pour provoquer un accès concurrent
+## Guide pour provoquer un accès concurrent (version Lamport)
 
 ### Description
 
-Ce guide détaille les étapes pour provoquer un accès concurrent lors d'un envoi de la même commande depuis plusieurs clients vers le serveur. Cela permet de vérifier le bon fonctionnement de la gestion de la concurrence.
+Ce guide détaille les étapes pour provoquer un accès concurrent lors d'un envoi de la même commande depuis plusieurs clients vers plusieurs serveurs différents du pool. Cela permet de vérifier le bon fonctionnement de la gestion de la concurrence.
 
 Lorsqu'il est en mode `debug`, le serveur démarre et accepte les nouvelles connexions client. Le contexte s'occupant du traitement des requêtes se met en pause pendant X secondes afin de laisser le temps à la création d'un accès concurrent.
+
+Pour ce test, le pool contient **trois serveurs (0, 1 et 2)** interconnectés et **deux clients** effectuant la même requete `BOOK 1 2 3` en même temps vers les serveurs 1 et 2.
 
 ### Etapes
 
@@ -216,21 +265,36 @@ Lorsqu'il est en mode `debug`, le serveur démarre et accepte les nouvelles conn
 DEBUG = 1
 ```
 
--> Modifier si nécessaire le temps de "sommeil" du serveur au démarrage
+-> Modifier si nécessaire le temps de "sommeil" du serveur au démarrage. Ce temps de sommeil sera le temps pour lancer les deux clients et écrire les deux requêtes. (temps conseillé 45s-60s)
 
 ```go
 DEBUG_SLEEP = X // Remplacer X par le nombre de secondes à attendre
 ```
 
+<img src="file:///G:/1%20-%20OneDrive/OneDrive/Documents/2%20-%20HEIG-VD/PRR/Labos/LAB001_2_ProgrammeGo/PRR_LAB_Reservation_Hotel/md-img/2021-11-28-09-30-40-image.png" title="" alt="" data-align="center">
+
 **2 - Préparer plusieurs terminaux de commande**
 
--> Ouvrir 3 terminaux de commande et les placer côte à côte
+-> Ouvrir 5 terminaux de commande et les placer côte à côte
 
--> Démarrer deux instances de clients
+-> Démarrer deux instances de clients se connectant aux serveurs 1 et 2
 
--> Démarrer une instance de serveur
+```bash
+client 1
+client 2
+```
 
-> ATTENTION /!\ Au démarrage du serveur, vous aurez X secondes pour provoquer l'accès concurrent !
+-> Démarrer trois instances de serveurs
+
+> ATTENTION /!\ Au démarrage du dernier serveur, le pool va se connecter et vous aurez X secondes pour provoquer l'accès concurrent !
+
+```bash
+server 0
+server 1
+server 2
+```
+
+<img src="file:///G:/1%20-%20OneDrive/OneDrive/Documents/2%20-%20HEIG-VD/PRR/Labos/LAB001_2_ProgrammeGo/PRR_LAB_Reservation_Hotel/md-img/2021-11-28-09-29-48-image.png" title="" alt="" data-align="center">
 
 **3 - Provoquer l'accès concurrent**
 
@@ -244,11 +308,17 @@ BOOK 1 2 3
 
 > Cette commande demande la réservation de la chambre 1 depuis le jour 2 pendant 3 nuits
 
+<img src="file:///G:/1%20-%20OneDrive/OneDrive/Documents/2%20-%20HEIG-VD/PRR/Labos/LAB001_2_ProgrammeGo/PRR_LAB_Reservation_Hotel/md-img/2021-11-28-09-34-54-image.png" title="" alt="" data-align="center">
+
 **4 - Résultat de la manipulation**
 
--> A ce moment, les deux clients vont se bloquer jusqu'à ce que le serveur termine les X secondes d'attente. Il va ensuite traîter les deux commandes et envoyer les retours aux clients
+-> A ce moment, les deux clients vont se bloquer jusqu'à ce que les serveur terminent ensemble les X secondes d'attente. Ils vont ensuite traîter les deux commandes et envoyer les retours aux clients.
 
--> L'un des clients aura donc obtenu la réservation et l'autre reçevra un message de refus, l'accès concurent aura été provoqué et  correctement géré 
+-> L'un des clients aura donc obtenu la réservation et l'autre reçevra un message de refus, l'accès concurent aura été provoqué et  correctement géré par l'algorithme de Lamport afin que l'état de l'hotel soit le même sur tous les serveurs.
+
+<img title="" src="file:///G:/1%20-%20OneDrive/OneDrive/Documents/2%20-%20HEIG-VD/PRR/Labos/LAB001_2_ProgrammeGo/PRR_LAB_Reservation_Hotel/md-img/2021-11-28-09-35-35-image.png" alt="" data-align="center">
+
+Le log des serveurs permet de suivre l'exécution de l'algorithme de Lamport. Les accès à la section critique et les synchronisation de commandes sont mises en évidence.
 
 ## License
 

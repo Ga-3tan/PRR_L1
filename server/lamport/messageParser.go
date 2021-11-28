@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// ParseMessage Transforms a textual message into a Lamport message object
 func ParseMessage(msg string) (MessageLamport, error){
 	args := strings.Split(strings.ReplaceAll(msg, "LPRT ", ""), " ")
 

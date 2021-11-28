@@ -1,3 +1,4 @@
+// Package network contains all sockets and net connections related structures
 package network
 
 import (
@@ -11,6 +12,7 @@ import (
 	"strconv"
 )
 
+// ConnManager One of the three main components of the program, represents the network bloc
 type ConnManager struct {
 	Id                 int
 	Conns              map[int]net.Conn
@@ -21,6 +23,7 @@ type ConnManager struct {
 	nbSyncs			   int
 }
 
+// AcceptConnections Goroutine that listens for incoming connections (servers or clients) on the server port
 func (mg *ConnManager) AcceptConnections() {
 
 	// Accept new connections
@@ -67,6 +70,7 @@ func (mg *ConnManager) AcceptConnections() {
 	}
 }
 
+// ServerReader Goroutine handles received data on a given net socket
 func (mg *ConnManager) serverReader(socket net.Conn) {
 	// Log
 	log.Println("ConnManager>> Now listening incoming messages from " + socket.RemoteAddr().String())
@@ -101,6 +105,7 @@ func (mg *ConnManager) serverReader(socket net.Conn) {
 	}
 }
 
+// ConnectAll Initiates a new connection to all servers in the pool (except self)
 func (mg *ConnManager) ConnectAll() {
 	for i := 0; i < len(config.Servers); i++ {
 		if i != mg.Id {
@@ -120,6 +125,7 @@ func (mg *ConnManager) ConnectAll() {
 	log.Println("ConnManager>> Connected to all servers pool")
 }
 
+// SendAll Sends a textual payload to all servers pool (except self)
 func (mg *ConnManager) SendAll(msg string) {
 	for id := 0; id < len(config.Servers); id++ {
 		if mg.Id != id {
@@ -128,6 +134,7 @@ func (mg *ConnManager) SendAll(msg string) {
 	}
 }
 
+// SendTo Sends a textual payload to a given server
 func (mg *ConnManager) SendTo(serverId int, msg string) {
 	utils.WriteLn(mg.Conns[serverId], msg)
 }
