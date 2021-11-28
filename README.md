@@ -1,5 +1,11 @@
 # PRR | Laboratoire 2 - Réservation de chambres d'hôtel
 
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![MIT License][license-shield]][license-url]
+
 ## Installation
 
 ### Structure du projet
