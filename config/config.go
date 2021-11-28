@@ -4,8 +4,8 @@ package config
 const (
 	MAX_DAYS    int    = 20
 	MAX_ROOMS          = 10
-	DEBUG              = 1 // Set to 1 for debug mode
-	DEBUG_SLEEP        = 25
+	DEBUG              = 0 // Set to 1 for debug mode
+	DEBUG_SLEEP        = 60
 	HOST       string = "localhost"
 	NB_SERVERS int    = 3
 )
