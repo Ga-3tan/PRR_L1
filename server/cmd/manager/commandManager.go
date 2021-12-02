@@ -77,7 +77,7 @@ func (m *CommandManager) HandleSyncCommands() {
 			log.Println("CommandManager>> Syncing BOOK command from " + syncCmd.Command.Reservation.Client)
 			_, _ = m.Hotel.BookRoom(syncCmd.Command.Reservation.IdRoom, syncCmd.Command.Reservation.Day, syncCmd.Command.Reservation.NbNights, syncCmd.Command.Reservation.Client)
 			log.Println("CommandManager>> Synced command, notifies " + strconv.Itoa(syncCmd.AuthorId))
-			m.ConnManager.SendTo(syncCmd.AuthorId, string(lamport.SYNC))
+			m.ConnManager.SendTo(syncCmd.AuthorId, string(network.SYNC))
 		default:
 			log.Println("CommandManager>> Unknown sync command received")
 		}

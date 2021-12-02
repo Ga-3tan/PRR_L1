@@ -57,7 +57,7 @@ func Start(srvId int, hotel *logic.Hotel) {
 
 	// Connects all the servers together
 	go connManager.AcceptConnections()
-	connManager.ConnectAll()
+	connManager.ConnectAllSiblings()
 	log.Println("SERVER>> Server now ready to accept clients requests")
 
 	// Start goroutine mutex process

@@ -149,13 +149,7 @@ CLI
 
 #### Messages venant d'un serveur
 
-**Message de Lamport**
-
-```css
-LPRT [MESSAGE]
-```
-
-> [MESSAGE] -> La commande avec son estampille et l'id de l'émetteur(ex. REQ 3 0)
+##### Synchronisation
 
 **Commande de synchronisation**
 
@@ -178,6 +172,47 @@ SYOK
 ```
 
 Le serveur ayant lancé la commande de synchronisation va donc reçevoir une confirmation de tous les autres serveurs et pourra ensuite libérer la section critique en continuant l'exécution de l'algorithme de Lamport.
+
+##### Lamport
+
+**Message de Lamport**
+
+```css
+LPRT [MESSAGE]
+```
+
+> [MESSAGE] -> La commande avec son estampille et l'id de l'émetteur(ex. REQ 3 0)
+
+##### Raymond
+
+**Requête de Raymond**
+
+```css
+RAYM REQ [fromID]
+```
+
+**Échange de token**
+
+```css
+RAYM TOK [fromID]
+```
+
+**Tous les enfants du noeud sont connectés**
+
+Envoyé au parent
+
+```css
+RDY
+```
+
+**La racine a reçu un RDY de tous ses enfants**
+
+Envoyé par la racine à ses enfants 
+Chaque nœud va le renvoyer à ses enfants pour se dire qu'il est prêt
+
+```css
+SRT
+```
 
 ## Commandes client
 

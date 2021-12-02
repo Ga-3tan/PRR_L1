@@ -14,7 +14,6 @@ const (
 	REL MessageType = "REL"
 	ASK_SC MessageType = "ASK_SC"
 	END_SC MessageType = "END_SC"
-	SYNC   MessageType = "SYOK"
 )
 
 // MessageLamport represents a Lamport message
