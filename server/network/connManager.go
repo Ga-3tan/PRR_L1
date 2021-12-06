@@ -19,9 +19,9 @@ type ConnManager struct {
 	CliCh              chan net.Conn
 	CmdSyncCh          chan cmd.SyncCommand
 	MutexConnManagerCh chan lamport.MessageLamport
-	WaitSyncCh		   chan struct{}
-	nbSyncs			   int
-	nbRdyChildren	   int
+	WaitSyncCh         chan struct{}
+	nbSyncs            int
+	nbRdyChildren      int
 	canAcceptClients   bool
 }
 
@@ -58,12 +58,19 @@ func (mg *ConnManager) AcceptConnections() {
 			// New connexion from server
 			log.Println("ConnManager>> New connection from " + newSocket.RemoteAddr().String())
 			go mg.serverReader(newSocket)
+
 		case string(CLI):
 			// New connexion from physical client only if server pool is ready
 			if mg.canAcceptClients {
 				mg.CliCh <- newSocket
+			} else {
+				utils.WriteLn(newSocket, "Le serveur ne peut accepter de nouvelles connections pour le moment, veuillez réessayer plus tard")
+				newSocket.Close()
 			}
+
 		default:
+			log.Println("ConnManager>> Unrecognised message from " + newSocket.RemoteAddr().String())
+			newSocket.Close()
 		}
 
 		// Error handle
@@ -89,22 +96,27 @@ func (mg *ConnManager) serverReader(socket net.Conn) {
 			if incomingInput[0:3] == string(RDY) {
 				log.Println("ConnManager>> Received one RDY")
 				mg.nbRdyChildren++
+
 			} else if incomingInput[0:4] == string(STRT) {
 				log.Println("ConnManager>> Received STRT, propagating to all children")
 				mg.SendAllChildren(string(STRT))
 				mg.canAcceptClients = true
+				log.Println("SERVER>> Server now ready to accept clients requests")
+
 			} else if incomingInput[0:4] == string(LPRT) { // Lamport command
 				msg, err := lamport.ParseMessage(incomingInput)
 				if err != nil {
 					log.Fatal(err)
 				}
-				mg.MutexConnManagerCh<-msg
+				mg.MutexConnManagerCh <- msg
+
 			} else if incomingInput[0:4] == string(SYNC) { // Sync OK
 				mg.nbSyncs++
 				if mg.nbSyncs == len(mg.Conns) { // All pool has sync the command
 					mg.nbSyncs = 0
 					mg.WaitSyncCh <- struct{}{}
 				}
+
 			} else { // Server Sync command
 				outputCmd, err := cmd.ParseServerSyncCommand(incomingInput)
 				if err != nil {
@@ -130,7 +142,7 @@ func (mg *ConnManager) ConnectAllSiblings() {
 			conn, err := net.Dial("tcp", config.Servers[srvToConnect].Host+":"+strconv.Itoa(config.Servers[srvToConnect].Port))
 			if err == nil {
 				utils.WriteLn(conn, string(SRV))
-				mg.Conns[i] = conn
+				mg.Conns[srvToConnect] = conn
 				break
 			}
 		}
@@ -143,67 +155,45 @@ func (mg *ConnManager) ConnectAllSiblings() {
 	mg.checkAllReady()
 }
 
-// ConnectAll Initiates a new connection to all servers in the pool (except self)
-func (mg *ConnManager) ConnectAll() {
-	for i := 0; i < len(config.Servers); i++ {
-		if i != mg.Id {
-			for {
-				// Dials the remote server and adds the socket in the map
-				conn, err := net.Dial("tcp", config.Servers[i].Host+":"+strconv.Itoa(config.Servers[i].Port))
-				if err == nil {
-					utils.WriteLn(conn, string(SRV))
-					mg.Conns[i] = conn
-					break
-				}
-			}
-		}
-	}
-
-	// Log connection successful
-	log.Println("ConnManager>> Connected to all servers pool")
-}
-
 // checkAllReady handles the RDY messages from the childen
 func (mg *ConnManager) checkAllReady() {
 	// Gets number of siblings
-	nbSiblings := len(config.Servers[mg.Id].Siblings)
+	nbSiblingsToWait := len(config.Servers[mg.Id].Siblings)
 	parent := config.Servers[mg.Id].Parent
+
+	// If not root, doesn't count the parent sibling
+	if parent != -1 {
+		nbSiblingsToWait -= 1
+	}
 
 	// Sends RDY message to parent if all siblings are connected and all children responded with RDY
 	for {
-		if mg.nbRdyChildren >= nbSiblings - 1 {
+		if mg.nbRdyChildren >= nbSiblingsToWait {
 			break
 		}
 	}
 
-	// If ROOT, sends the STRT message, else sends RDY to parent
+	// Sends RDY to parent or sends STRT if ROOT
 	if parent != -1 {
 		// Sends RDY to parent
 		log.Println("ConnManager>> Sending ready to parent " + strconv.Itoa(parent))
 		utils.WriteLn(mg.Conns[parent], string(RDY))
 	} else {
-		for _, conn  := range mg.Conns {
-			log.Println("ConnManager>> ROOT sending start to all children")
-			utils.WriteLn(conn, string(STRT))
-		}
+		log.Println("ConnManager>> ROOT sending start to all children")
+		mg.SendAllChildren(string(STRT))
+
+		// Root can start too
+		mg.canAcceptClients = true
+		log.Println("SERVER>> Server now ready to accept clients requests")
 	}
 }
 
 // SendAllChildren Sends a textual message to all children of the server
 func (mg *ConnManager) SendAllChildren(msg string) {
 	parent := config.Servers[mg.Id].Parent
-	for id, conn  := range mg.Conns {
+	for id, conn := range mg.Conns {
 		if parent != id {
 			utils.WriteLn(conn, msg)
-		}
-	}
-}
-
-// SendAll Sends a textual payload to all servers pool (except self)
-func (mg *ConnManager) SendAll(msg string) {
-	for id := 0; id < len(config.Servers); id++ {
-		if mg.Id != id {
-			mg.SendTo(id, msg)
 		}
 	}
 }

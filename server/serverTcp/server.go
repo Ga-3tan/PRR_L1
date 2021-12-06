@@ -47,18 +47,17 @@ func Start(srvId int, hotel *logic.Hotel) {
 
 	// Handles commands to execute on the hotel, uses the mutex to check concurrent accesses and obtain SC access
 	commandHandler := cmdManager.CommandManager{
-		Hotel: hotel,
-		CmdChan: commandsChan,
-		CmdSyncChan: commandsSyncChan,
+		Hotel:         hotel,
+		CmdChan:       commandsChan,
+		CmdSyncChan:   commandsSyncChan,
 		ServerMutexCh: serverMutexCh,
-		AgreedSC: agreedSC,
-		ConnManager: connManager,
+		AgreedSC:      agreedSC,
+		ConnManager:   connManager,
 	}
 
 	// Connects all the servers together
 	go connManager.AcceptConnections()
 	connManager.ConnectAllSiblings()
-	log.Println("SERVER>> Server now ready to accept clients requests")
 
 	// Start goroutine mutex process
 	go mutexManager.Start()
