@@ -5,9 +5,9 @@ import (
 	"errors"
 	"hotel/config"
 	"hotel/server/cmd"
-	"hotel/server/lamport"
 	"hotel/server/logic"
 	"hotel/server/network"
+	"hotel/server/raymond"
 	"log"
 	"strconv"
 	"time"
@@ -15,12 +15,12 @@ import (
 
 // CommandManager One of the three main components of the program, represents the server logic bloc
 type CommandManager struct {
-	Hotel *logic.Hotel
-	CmdChan chan cmd.Command
-	CmdSyncChan chan cmd.SyncCommand
-	ServerMutexCh chan lamport.MessageType
-	AgreedSC chan struct{}
-	ConnManager network.ConnManager
+	Hotel         *logic.Hotel
+	CmdChan       chan cmd.Command
+	CmdSyncChan   chan cmd.SyncCommand
+	ServerMutexCh chan raymond.MessageType
+	AgreedSC      chan struct{}
+	ConnManager   network.ConnManager
 }
 
 // HandleCommands Handles concurrency and executes the new given commands
@@ -39,17 +39,17 @@ func (m *CommandManager) HandleCommands() {
 		switch newCmd.Cmd {
 		case cmd.BOOK:
 			log.Println("CommandManager>> New BOOK command from " + newCmd.Reservation.Client)
-			m.ServerMutexCh<- lamport.ASK_SC
+			m.ServerMutexCh <- raymond.ASK_SC
 			<-m.AgreedSC // Wait for signal from agreedSC
 
 			res, err = m.Hotel.BookRoom(newCmd.Reservation.IdRoom, newCmd.Reservation.Day, newCmd.Reservation.NbNights, newCmd.Reservation.Client)
 
 			// Propagates the new command and releases the SC
 			log.Println("CommandManager>> Propagating new BOOK command to server pool")
-			m.ConnManager.SendAll(newCmd.ToSyncStringCommand(m.ConnManager.Id))
+			m.ConnManager.SendAllSiblings(newCmd.ToSyncStringCommand(m.ConnManager.Id))
 			<-m.ConnManager.WaitSyncCh // Waits for sync to complete
 			log.Println("CommandManager>> Sync complete, ready to release critical section")
-			m.ServerMutexCh<- lamport.END_SC
+			m.ServerMutexCh <- raymond.END_SC
 		case cmd.ROOMS:
 			log.Println("CommandManager>> New ROOMS command received")
 			res, err = m.Hotel.GetRoomsList(newCmd.Reservation.Day, newCmd.Reservation.Client)
@@ -77,7 +77,8 @@ func (m *CommandManager) HandleSyncCommands() {
 			log.Println("CommandManager>> Syncing BOOK command from " + syncCmd.Command.Reservation.Client)
 			_, _ = m.Hotel.BookRoom(syncCmd.Command.Reservation.IdRoom, syncCmd.Command.Reservation.Day, syncCmd.Command.Reservation.NbNights, syncCmd.Command.Reservation.Client)
 			log.Println("CommandManager>> Synced command, notifies " + strconv.Itoa(syncCmd.AuthorId))
-			m.ConnManager.SendTo(syncCmd.AuthorId, string(network.SYNC))
+			newSyok := network.SyokMessage{FromId: m.ConnManager.Id, DestId: syncCmd.AuthorId}
+			m.ConnManager.SendAllSiblings(newSyok.ToString())
 		default:
 			log.Println("CommandManager>> Unknown sync command received")
 		}

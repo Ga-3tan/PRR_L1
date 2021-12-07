@@ -168,7 +168,7 @@ SYNC [FROM]|[USERNAME]|[COMMAND]
 Après synchronisation d'une commande externe, un serveur répond à l'émetteur de la commande de synchronisation afin qu'il puisse libérer la section critique.
 
 ```css
-SYOK
+SYOK [fromId] [destId]
 ```
 
 Le serveur ayant lancé la commande de synchronisation va donc reçevoir une confirmation de tous les autres serveurs et pourra ensuite libérer la section critique en continuant l'exécution de l'algorithme de Lamport.

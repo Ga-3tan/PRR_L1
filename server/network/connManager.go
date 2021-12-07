@@ -5,7 +5,7 @@ import (
 	"bufio"
 	"hotel/config"
 	"hotel/server/cmd"
-	"hotel/server/lamport"
+	"hotel/server/raymond"
 	"hotel/utils"
 	"log"
 	"net"
@@ -18,7 +18,7 @@ type ConnManager struct {
 	Conns              map[int]net.Conn
 	CliCh              chan net.Conn
 	CmdSyncCh          chan cmd.SyncCommand
-	MutexConnManagerCh chan lamport.MessageLamport
+	MutexConnManagerCh chan raymond.MessageRaymond
 	WaitSyncCh         chan struct{}
 	nbSyncs            int
 	nbRdyChildren      int
@@ -103,26 +103,44 @@ func (mg *ConnManager) serverReader(socket net.Conn) {
 				mg.canAcceptClients = true
 				log.Println("SERVER>> Server now ready to accept clients requests")
 
-			} else if incomingInput[0:4] == string(LPRT) { // Lamport command
-				msg, err := lamport.ParseMessage(incomingInput)
+			} else if incomingInput[0:4] == string(RAYM) { // Lamport command
+				msg, err := raymond.ParseMessage(incomingInput)
 				if err != nil {
 					log.Fatal(err)
 				}
 				mg.MutexConnManagerCh <- msg
 
-			} else if incomingInput[0:4] == string(SYNC) { // Sync OK
-				mg.nbSyncs++
-				if mg.nbSyncs == len(mg.Conns) { // All pool has sync the command
-					mg.nbSyncs = 0
-					mg.WaitSyncCh <- struct{}{}
+			} else if incomingInput[0:4] == string(SYOK) { // Sync OK
+				// Parse SYOK
+				msg, err := parseSyokMessage(incomingInput)
+				if err != nil {
+					log.Fatal(err)
 				}
 
-			} else { // Server Sync command
+				// Not the receiver, propagates to all except sender
+				if msg.DestId != mg.Id {
+					log.Println("ConnManager>> Received SYOK destined to " + strconv.Itoa(msg.DestId) + ". Forwarding.")
+					newSyok := SyokMessage{FromId: mg.Id, DestId: msg.DestId}
+					mg.SendAllSiblingsExcept(msg.FromId, newSyok.ToString())
+				} else {
+					// Original reciever of the SYOK command
+					log.Println("ConnManager>> Received one SYOK")
+					mg.nbSyncs++
+					if mg.nbSyncs == len(mg.Conns) { // All pool has sync the command
+						mg.nbSyncs = 0
+						mg.WaitSyncCh <- struct{}{}
+					}
+				}
+
+			} else if incomingInput[0:4] == string(SYNC) { // Server Sync command
 				outputCmd, err := cmd.ParseServerSyncCommand(incomingInput)
 				if err != nil {
 					log.Fatal(err)
 				}
 				mg.CmdSyncCh <- outputCmd
+
+				// Propagates the sync
+				mg.SendAllSiblingsExcept(outputCmd.AuthorId, outputCmd.Command.ToSyncStringCommand(mg.Id))
 			}
 		}
 	}
@@ -185,6 +203,21 @@ func (mg *ConnManager) checkAllReady() {
 		// Root can start too
 		mg.canAcceptClients = true
 		log.Println("SERVER>> Server now ready to accept clients requests")
+	}
+}
+
+// SendAllSiblings Sends a textual message to all siblings of the server
+func (mg *ConnManager) SendAllSiblings(msg string) {
+	for _, conn := range mg.Conns {
+		utils.WriteLn(conn, msg)
+	}
+}
+
+func (mg *ConnManager) SendAllSiblingsExcept(exceptId int, msg string) {
+	for id, conn := range mg.Conns {
+		if id != exceptId {
+			utils.WriteLn(conn, msg)
+		}
 	}
 }
 

@@ -7,7 +7,7 @@ import (
 )
 
 // ParseMessage Transforms a textual message into a Raymond message object
-func ParseMessage(msg string) (MessageRaymond, error){
+func ParseMessage(msg string) (MessageRaymond, error) {
 	args := strings.Split(strings.ReplaceAll(msg, "RAYM ", ""), " ")
 
 	if len(args) == 0 {
@@ -16,7 +16,7 @@ func ParseMessage(msg string) (MessageRaymond, error){
 
 	messageType := MessageType(args[0])
 
-	senderId, err := strconv.Atoi(args[2])
+	senderId, err := strconv.Atoi(args[1])
 	if err != nil {
 		return MessageRaymond{}, errors.New("ERR Wrong message : bad senderId")
 	}

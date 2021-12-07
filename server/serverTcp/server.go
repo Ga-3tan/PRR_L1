@@ -3,12 +3,13 @@ package serverTcp
 
 import (
 	"bufio"
+	"hotel/config"
 	"hotel/server/cmd"
 	cmdManager "hotel/server/cmd/manager"
-	"hotel/server/lamport"
-	lprtManager "hotel/server/lamport/manager"
 	"hotel/server/logic"
 	"hotel/server/network"
+	"hotel/server/raymond"
+	raymManager "hotel/server/raymond/manager"
 	"hotel/utils"
 	"log"
 	"net"
@@ -18,8 +19,8 @@ import (
 func Start(srvId int, hotel *logic.Hotel) {
 
 	// Channels initialisation
-	var serverMutexCh = make(chan lamport.MessageType, 100)         // server <=> mutex
-	var mutexConnManagerCh = make(chan lamport.MessageLamport, 100) // mutex <=> network
+	var serverMutexCh = make(chan raymond.MessageType, 100)         // server <=> mutex
+	var mutexConnManagerCh = make(chan raymond.MessageRaymond, 100) // mutex <=> network
 	var commandsChan = make(chan cmd.Command, 100)
 	var commandsSyncChan = make(chan cmd.SyncCommand, 100)
 	var cliCh = make(chan net.Conn, 100)
@@ -37,8 +38,11 @@ func Start(srvId int, hotel *logic.Hotel) {
 	}
 
 	// Mutex manager, implements Lamport algorithm for distributed operations on the hotel
-	mutexManager := lprtManager.MutexManager{
+	mutexManager := raymManager.MutexManager{
 		SelfId:             srvId,
+		State:              raymManager.N,
+		Parent:             config.Servers[srvId].Parent,
+		Queue:              make([]int, 0),
 		AgreedSC:           agreedSC,
 		ServerMutexCh:      serverMutexCh,
 		MutexConnManagerCh: mutexConnManagerCh,
