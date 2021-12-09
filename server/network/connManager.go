@@ -10,6 +10,7 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"sync"
 )
 
 // ConnManager One of the three main components of the program, represents the network bloc
@@ -20,6 +21,7 @@ type ConnManager struct {
 	CmdSyncCh          chan cmd.SyncCommand
 	MutexConnManagerCh chan raymond.MessageRaymond
 	WaitSyncCh         chan struct{}
+	mutex              sync.Mutex
 	nbSyncs            int
 	nbRdyChildren      int
 	canAcceptClients   bool
@@ -31,7 +33,7 @@ func (mg *ConnManager) AcceptConnections() {
 	// Accept new connections
 	port := strconv.Itoa(config.Servers[mg.Id].Port)
 	serverSocket, err := net.Listen("tcp", config.Servers[mg.Id].Host+":"+port)
-	log.Println("ConnManager>> Server started on " + config.Servers[mg.Id].Host + ":" + port)
+	log.Println("ConnManager>> Server listening on " + config.Servers[mg.Id].Host + ":" + port)
 
 	// Error handle
 	if err != nil {
@@ -45,7 +47,7 @@ func (mg *ConnManager) AcceptConnections() {
 	}(serverSocket)
 
 	// Accepts new connexions and handles them
-	log.Println("ConnManager>> Now accepting new client/server connexions")
+	log.Println("ConnManager>> Now accepting new server connexions")
 	for {
 		newSocket, err := serverSocket.Accept()
 
@@ -95,7 +97,9 @@ func (mg *ConnManager) serverReader(socket net.Conn) {
 
 			if incomingInput[0:3] == string(RDY) {
 				log.Println("ConnManager>> Received one RDY")
+				mg.mutex.Lock()
 				mg.nbRdyChildren++
+				mg.mutex.Unlock()
 
 			} else if incomingInput[0:4] == string(STRT) {
 				log.Println("ConnManager>> Received STRT, propagating to all children")
@@ -124,9 +128,10 @@ func (mg *ConnManager) serverReader(socket net.Conn) {
 					mg.SendAllSiblingsExcept(msg.FromId, newSyok.ToString())
 				} else {
 					// Original reciever of the SYOK command
-					log.Println("ConnManager>> Received one SYOK")
+					log.Println("ConnManager>> Received one SYOK for me")
 					mg.nbSyncs++
-					if mg.nbSyncs == len(mg.Conns) { // All pool has sync the command
+					if mg.nbSyncs == len(config.Servers)-1 { // All pool has sync the command
+						log.Println("ConnManager>> Received all" + strconv.Itoa(mg.nbSyncs) + " SYOK, command was synced in all servers")
 						mg.nbSyncs = 0
 						mg.WaitSyncCh <- struct{}{}
 					}
@@ -153,10 +158,10 @@ func (mg *ConnManager) ConnectAllSiblings() {
 
 	// Connects to all siblings
 	for i := 0; i < nbSiblings; i++ {
+		srvToConnect := config.Servers[mg.Id].Siblings[i]
+		log.Println("ConnManager>> Connecting to " + strconv.Itoa(srvToConnect))
 		for {
 			// Dials the remote server and adds the socket in the map
-			srvToConnect := config.Servers[mg.Id].Siblings[i]
-			log.Println("ConnManager>> Connecting to " + strconv.Itoa(srvToConnect))
 			conn, err := net.Dial("tcp", config.Servers[srvToConnect].Host+":"+strconv.Itoa(config.Servers[srvToConnect].Port))
 			if err == nil {
 				utils.WriteLn(conn, string(SRV))
@@ -186,15 +191,18 @@ func (mg *ConnManager) checkAllReady() {
 
 	// Sends RDY message to parent if all siblings are connected and all children responded with RDY
 	for {
+		mg.mutex.Lock()
 		if mg.nbRdyChildren >= nbSiblingsToWait {
+			mg.mutex.Unlock()
 			break
 		}
+		mg.mutex.Unlock()
 	}
 
 	// Sends RDY to parent or sends STRT if ROOT
 	if parent != -1 {
 		// Sends RDY to parent
-		log.Println("ConnManager>> Sending ready to parent " + strconv.Itoa(parent))
+		log.Println("ConnManager>> All children ready, sending ready to parent " + strconv.Itoa(parent))
 		utils.WriteLn(mg.Conns[parent], string(RDY))
 	} else {
 		log.Println("ConnManager>> ROOT sending start to all children")
