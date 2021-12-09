@@ -181,8 +181,11 @@ func (mg *ConnManager) ConnectAllSiblings() {
 // checkAllReady handles the RDY messages from the childen
 func (mg *ConnManager) checkAllReady() {
 	// Gets number of siblings
-	nbSiblingsToWait := len(config.Servers[mg.Id].Siblings)
+	nbSiblingsToWait := len(config.Servers[mg.Id].Siblings)-1
 	parent := config.Servers[mg.Id].Parent
+
+	//log.Print("should wait for : ")
+	//log.Println(nbSiblingsToWait)
 
 	// If not root, doesn't count the parent sibling
 	if parent != -1 {
