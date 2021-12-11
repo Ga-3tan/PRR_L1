@@ -24,7 +24,7 @@ type MutexManager struct {
 	AgreedSC           chan struct{}
 	ServerMutexCh      chan raymond.MessageType
 	MutexConnManagerCh chan raymond.MessageRaymond
-	ConnManager        network.ConnManager
+	ConnManager        *network.ConnManager
 	needAccessSC       bool
 }
 

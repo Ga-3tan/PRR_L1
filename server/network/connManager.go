@@ -10,7 +10,6 @@ import (
 	"log"
 	"net"
 	"strconv"
-	"sync"
 )
 
 // ConnManager One of the three main components of the program, represents the network bloc
@@ -21,7 +20,7 @@ type ConnManager struct {
 	CmdSyncCh          chan cmd.SyncCommand
 	MutexConnManagerCh chan raymond.MessageRaymond
 	WaitSyncCh         chan struct{}
-	mutex              sync.Mutex
+	Sem                chan struct{}
 	nbSyncs            int
 	nbRdyChildren      int
 	canAcceptClients   bool
@@ -97,9 +96,7 @@ func (mg *ConnManager) serverReader(socket net.Conn) {
 
 			if incomingInput[0:3] == string(RDY) {
 				log.Println("ConnManager>> Received one RDY")
-				mg.mutex.Lock()
-				mg.nbRdyChildren++
-				mg.mutex.Unlock()
+				mg.Sem <- struct{}{}
 
 			} else if incomingInput[0:4] == string(STRT) {
 				log.Println("ConnManager>> Received STRT, propagating to all children")
@@ -121,13 +118,13 @@ func (mg *ConnManager) serverReader(socket net.Conn) {
 					log.Fatal(err)
 				}
 
-				// Not the receiver, propagates to all except sender
+				// Not the SYNC author, propagates to all except sender
 				if msg.DestId != mg.Id {
-					log.Println("ConnManager>> Received SYOK destined to " + strconv.Itoa(msg.DestId) + ". Forwarding.")
+					log.Println("ConnManager>> Received SYOK from " + strconv.Itoa(msg.FromId) + " destined to " + strconv.Itoa(msg.DestId) + ". Forwarding.")
 					newSyok := SyokMessage{FromId: mg.Id, DestId: msg.DestId}
 					mg.SendAllSiblingsExcept(msg.FromId, newSyok.ToString())
 				} else {
-					// Original reciever of the SYOK command
+					// Original author of the SYNC command
 					log.Println("ConnManager>> Received one SYOK for me")
 					mg.nbSyncs++
 					if mg.nbSyncs == len(config.Servers)-1 { // All pool has sync the command
@@ -145,7 +142,7 @@ func (mg *ConnManager) serverReader(socket net.Conn) {
 				mg.CmdSyncCh <- outputCmd
 
 				// Propagates the sync
-				mg.SendAllSiblingsExcept(outputCmd.AuthorId, outputCmd.Command.ToSyncStringCommand(mg.Id))
+				mg.SendAllSiblingsExcept(outputCmd.FromId, outputCmd.Command.ToSyncStringCommand(outputCmd.AuthorId, mg.Id))
 			}
 		}
 	}
@@ -190,13 +187,8 @@ func (mg *ConnManager) checkAllReady() {
 	}
 
 	// Sends RDY message to parent if all siblings are connected and all children responded with RDY
-	for {
-		mg.mutex.Lock()
-		if mg.nbRdyChildren >= nbSiblingsToWait {
-			mg.mutex.Unlock()
-			break
-		}
-		mg.mutex.Unlock()
+	for i := 0; i < nbSiblingsToWait; i++ {
+		<-mg.Sem
 	}
 
 	// Sends RDY to parent or sends STRT if ROOT

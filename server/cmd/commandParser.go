@@ -77,12 +77,15 @@ func ParseCommand(msg string, clientName string) (Command, error) {
 // ParseServerSyncCommand take a SYNC USER|[commande] et la commande
 func ParseServerSyncCommand(msg string) (SyncCommand, error) {
 	servSeparator := strings.Split(msg, "|")
-	fromId, errConv := strconv.Atoi(strings.ReplaceAll(servSeparator[0], "SYNC ", "")) // supprimer "SYNC "
-	if errConv != nil { log.Fatal("Impossible to convert received data to sync command") }
-	username := servSeparator[1]
-	command, err := ParseCommand(servSeparator[2], username)
+	authorId, errConv1 := strconv.Atoi(strings.ReplaceAll(servSeparator[0], "SYNC ", "")) // supprimer "SYNC "
+	fromId, errConv2 := strconv.Atoi(servSeparator[1])                                    // supprimer "SYNC "
+	if errConv1 != nil || errConv2 != nil {
+		log.Fatal("Impossible to convert received data to sync command")
+	}
+	username := servSeparator[2]
+	command, err := ParseCommand(servSeparator[3], username)
 	if err != nil {
 		log.Println(err)
 	}
-	return SyncCommand{AuthorId: fromId, Command: command}, nil
+	return SyncCommand{AuthorId: authorId, FromId: fromId, Command: command}, nil
 }
