@@ -82,6 +82,8 @@ func (m *MutexManager) Start() {
 }
 
 func (m *MutexManager) askSC() {
+	log.Println("MutexManager>> ############# ASKING FOR CRITICAL SECTION #############")
+
 	if m.Parent != -1 {
 		m.queuePush(m.SelfId)
 
