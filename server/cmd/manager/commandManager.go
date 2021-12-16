@@ -20,7 +20,7 @@ type CommandManager struct {
 	CmdSyncChan   chan cmd.SyncCommand
 	ServerMutexCh chan raymond.MessageType
 	AgreedSC      chan struct{}
-	ConnManager   network.ConnManager
+	ConnManager   *network.ConnManager
 }
 
 // HandleCommands Handles concurrency and executes the new given commands
@@ -46,7 +46,7 @@ func (m *CommandManager) HandleCommands() {
 
 			// Propagates the new command and releases the SC
 			log.Println("CommandManager>> Propagating new BOOK command to server pool")
-			m.ConnManager.SendAllSiblings(newCmd.ToSyncStringCommand(m.ConnManager.Id))
+			m.ConnManager.SendAllSiblings(newCmd.ToSyncStringCommand(m.ConnManager.Id, m.ConnManager.Id))
 			<-m.ConnManager.WaitSyncCh // Waits for sync to complete
 			log.Println("CommandManager>> Sync complete, ready to release critical section")
 			m.ServerMutexCh <- raymond.END_SC
@@ -74,7 +74,7 @@ func (m *CommandManager) HandleSyncCommands() {
 	for syncCmd := range m.CmdSyncChan {
 		switch syncCmd.Command.Cmd {
 		case cmd.BOOK:
-			log.Println("CommandManager>> Syncing BOOK command from " + syncCmd.Command.Reservation.Client)
+			log.Println("CommandManager>> Syncing BOOK command from " + syncCmd.Command.Reservation.Client + " authored by " + strconv.Itoa(syncCmd.AuthorId) + " relayed by " + strconv.Itoa(syncCmd.FromId))
 			_, _ = m.Hotel.BookRoom(syncCmd.Command.Reservation.IdRoom, syncCmd.Command.Reservation.Day, syncCmd.Command.Reservation.NbNights, syncCmd.Command.Reservation.Client)
 			log.Println("CommandManager>> Synced command, notifies " + strconv.Itoa(syncCmd.AuthorId))
 			newSyok := network.SyokMessage{FromId: m.ConnManager.Id, DestId: syncCmd.AuthorId}

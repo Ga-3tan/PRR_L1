@@ -35,6 +35,7 @@ func Start(srvId int, hotel *logic.Hotel) {
 		CmdSyncCh:          commandsSyncChan,
 		MutexConnManagerCh: mutexConnManagerCh,
 		WaitSyncCh:         waitSyncCh,
+		Sem:                make(chan struct{}),
 	}
 
 	// Mutex manager, implements Lamport algorithm for distributed operations on the hotel
@@ -46,7 +47,7 @@ func Start(srvId int, hotel *logic.Hotel) {
 		AgreedSC:           agreedSC,
 		ServerMutexCh:      serverMutexCh,
 		MutexConnManagerCh: mutexConnManagerCh,
-		ConnManager:        connManager,
+		ConnManager:        &connManager,
 	}
 
 	// Handles commands to execute on the hotel, uses the mutex to check concurrent accesses and obtain SC access
@@ -56,7 +57,7 @@ func Start(srvId int, hotel *logic.Hotel) {
 		CmdSyncChan:   commandsSyncChan,
 		ServerMutexCh: serverMutexCh,
 		AgreedSC:      agreedSC,
-		ConnManager:   connManager,
+		ConnManager:   &connManager,
 	}
 
 	// Connects all the servers together

@@ -1,4 +1,4 @@
-# PRR | Laboratoire 2 - Réservation de chambres d'hôtel
+# PRR | Laboratoire 3 - Réservation de chambres d'hôtel
 
 ## Installation
 
@@ -154,10 +154,12 @@ CLI
 **Commande de synchronisation**
 
 ```css
-SYNC [FROM]|[USERNAME]|[COMMAND]
+SYNC [AUTHORID]|[FROMID]|[USERNAME]|[COMMAND]
 ```
 
-> [FROM] -> Id de l'émetteur source de la commande
+> [AUTHORID] -> Id de l'émetteur source de la commande
+> 
+> [FROMID] -> Id de l'émetteur relais de la commande
 > 
 > [USERNAME] -> Nom du client ayant fait la commande
 > 

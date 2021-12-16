@@ -17,7 +17,8 @@ type Test struct {
 	response string
 }
 
-var conn net.Conn
+var conn1 net.Conn
+var conn2 net.Conn
 
 func TestMain(m *testing.M) {
 	setup()
@@ -27,14 +28,19 @@ func TestMain(m *testing.M) {
 }
 
 func setup() {
-	conn = clientTcp.Connect(rand.Intn(config.NB_SERVERS))
-	utils.ReadLn(conn)
-	utils.WriteLn(conn, "TestUser")
-	utils.ReadLn(conn)
+	conn1 = clientTcp.Connect(rand.Intn(config.NB_SERVERS))
+	conn2 = clientTcp.Connect(rand.Intn(config.NB_SERVERS))
+	utils.ReadLn(conn1)
+	utils.ReadLn(conn2)
+	utils.WriteLn(conn1, "TestUser1")
+	utils.WriteLn(conn2, "TestUser2")
+	utils.ReadLn(conn1)
+	utils.ReadLn(conn2)
 }
 
 func shutdown() {
-	clientTcp.Disconnect(conn)
+	clientTcp.Disconnect(conn1)
+	clientTcp.Disconnect(conn2)
 }
 
 func TestBookSameRoomTwice(t *testing.T) {
@@ -43,6 +49,15 @@ func TestBookSameRoomTwice(t *testing.T) {
 		{"BOOK 1 1 1", "ERR votre chambre est déjà réservée"},
 	}
 	doTest(tests, t)
+}
+
+func TestBookRoomSynchronous(t *testing.T) {
+	tests := []Test{
+		{"BOOK 7 5 3", "OK votre chambre a été réservée"},
+		{"BOOK 8 5 3", "OK votre chambre a été réservée"},
+		{"BOOK 9 5 3", "OK votre chambre a été réservée"},
+	}
+	doSynchronousTest(tests, false, t)
 }
 
 func TestBookSameRoomWithOverlappingStay(t *testing.T) {
@@ -87,8 +102,8 @@ func TestFreeRoomWhenAllRoomsForTheDayAreFull(t *testing.T) {
 
 	// for each room, we book day 15 and 16
 	for i := 1; i <= config.MAX_ROOMS; i++ {
-		utils.WriteLn(conn, "BOOK "+strconv.Itoa(i)+" 15 2")
-		utils.ReadLn(conn)
+		utils.WriteLn(conn1, "BOOK "+strconv.Itoa(i)+" 15 2")
+		utils.ReadLn(conn1)
 	}
 
 	tests := []Test{
@@ -98,6 +113,7 @@ func TestFreeRoomWhenAllRoomsForTheDayAreFull(t *testing.T) {
 	}
 
 	doTest(tests, t)
+	doSynchronousTest(tests, true, t)
 }
 
 func doTest(tests []Test, t *testing.T) {
@@ -105,10 +121,10 @@ func doTest(tests []Test, t *testing.T) {
 		// Sends the query to the server
 		fmt.Println("Testing query :")
 		fmt.Println(test.query)
-		utils.WriteLn(conn, test.query)
+		utils.WriteLn(conn1, test.query)
 
 		// Reads the server reply
-		reply := utils.ReadLn(conn)
+		reply := utils.ReadLn(conn1)
 		fmt.Println("Server response :")
 		fmt.Println(reply)
 
@@ -116,6 +132,36 @@ func doTest(tests []Test, t *testing.T) {
 		if reply != test.response {
 			fmt.Println(">> Test id " + strconv.Itoa(index) + " -> FAIL")
 			t.Error("\nRECEIVED\n" + reply + "\nEXPECTED\n" + test.response)
+		} else {
+			fmt.Println(">> Test id " + strconv.Itoa(index) + " -> SUCCESS")
+		}
+		fmt.Println()
+	}
+}
+
+func doSynchronousTest(tests []Test, sameAnswer bool, t *testing.T) {
+	for index, test := range tests {
+		// Sends the query to the server
+		fmt.Println("Testing synchronous query :")
+		fmt.Println(test.query)
+		utils.WriteLn(conn1, test.query)
+		utils.WriteLn(conn2, test.query)
+
+		// Reads the server reply
+		reply1 := utils.ReadLn(conn1)
+		reply2 := utils.ReadLn(conn2)
+		fmt.Println("Server response to TestUser1 :")
+		fmt.Println(reply1)
+		fmt.Println("Server response to TestUser2 :")
+		fmt.Println(reply2)
+
+		// Check if the test passes
+		if !sameAnswer && reply1 == reply2 {
+			fmt.Println(">> Test id " + strconv.Itoa(index) + " -> FAIL")
+			t.Error("\nRECEIVED\n" + reply1 + "\nSAME AS\n" + reply2 + "\nCHECK FOR CONCURRENCY PROBLEMS")
+		} else if reply1 != test.response && reply2 != test.response {
+			fmt.Println(">> Test id " + strconv.Itoa(index) + " -> FAIL")
+			t.Error("\nRECEIVED\n" + reply1 + "\n" + reply2 + "\nEXPECTED\n" + test.response)
 		} else {
 			fmt.Println(">> Test id " + strconv.Itoa(index) + " -> SUCCESS")
 		}

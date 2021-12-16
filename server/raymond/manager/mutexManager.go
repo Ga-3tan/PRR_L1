@@ -24,7 +24,7 @@ type MutexManager struct {
 	AgreedSC           chan struct{}
 	ServerMutexCh      chan raymond.MessageType
 	MutexConnManagerCh chan raymond.MessageRaymond
-	ConnManager        network.ConnManager
+	ConnManager        *network.ConnManager
 	needAccessSC       bool
 }
 
@@ -82,6 +82,8 @@ func (m *MutexManager) Start() {
 }
 
 func (m *MutexManager) askSC() {
+	log.Println("MutexManager>> ############# ASKING FOR CRITICAL SECTION #############")
+
 	if m.Parent != -1 {
 		m.queuePush(m.SelfId)
 
