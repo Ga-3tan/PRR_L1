@@ -26,6 +26,7 @@ func ReadLn(conn net.Conn) string {
 			break
 		}
 	}
+	log.Println("ReadLN>>\"" + buffer.String() + "\" READ")
 	return buffer.String()
 }
 
@@ -35,6 +36,7 @@ func WriteLn(conn net.Conn, content string) {
 	_, err := writer.WriteString(content + "\n")
 	if err == nil {
 		err = writer.Flush()
+		log.Println("WriteLn>>\"" + content + "\" SENT " + conn.RemoteAddr().String())
 	} else {
 		log.Fatal(err)
 	}

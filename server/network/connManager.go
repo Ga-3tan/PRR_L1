@@ -11,6 +11,7 @@ import (
 	"net"
 	"strconv"
 	"sync"
+	//"time"
 )
 
 // ConnManager One of the three main components of the program, represents the network bloc
@@ -25,6 +26,9 @@ type ConnManager struct {
 	nbSyncs            int
 	nbRdyChildren      int
 	canAcceptClients   bool
+	ready              int
+	WaitForAllRdy      chan struct{}
+	RdyCh              chan struct{}
 }
 
 // AcceptConnections Goroutine that listens for incoming connections (servers or clients) on the server port
@@ -83,11 +87,47 @@ func (mg *ConnManager) AcceptConnections() {
 	}
 }
 
+func (mg *ConnManager) rdyCounter() {
+	nbChildrenToWait := len(config.Servers[mg.Id].Siblings)
+	parent := config.Servers[mg.Id].Parent
+
+	// If not root, doesn't count the parent sibling
+	if parent != -1 {
+		nbChildrenToWait -= 1
+	}
+
+	log.Println("rdyCounter>> waiting for " + strconv.Itoa(nbChildrenToWait))
+
+	if !mg.checkRdy(nbChildrenToWait) { // if nbChildrenToWait > 0
+		for range mg.RdyCh {
+			log.Println("rdyCounter>> rdy arrived")
+			mg.nbRdyChildren += 1
+			if mg.checkRdy(nbChildrenToWait) { // if all ready
+				break
+			}
+		}
+	}
+	log.Println("rdyCounter>> ending")
+}
+
+// checkRdy return true if all RDY
+func (mg *ConnManager) checkRdy(nbChildrenToWait int) bool {
+	if mg.nbRdyChildren == nbChildrenToWait {
+		log.Println("checkRdy>> ALL rdy arrived trying to unlock WaitForAllRdy")
+		mg.WaitForAllRdy <- struct{}{}
+		log.Println("checkRdy>> WaitForAllRdy unlocked")
+		return true
+	}
+	log.Println("checkRdy>> failed, needs " + strconv.Itoa(nbChildrenToWait-mg.nbRdyChildren) + " more")
+	return false
+}
+
 // ServerReader Goroutine handles received data on a given net socket
 func (mg *ConnManager) serverReader(socket net.Conn) {
 	// Log
 	log.Println("ConnManager>> Now listening incoming messages from " + socket.RemoteAddr().String())
 
+	mg.ready += 1
 	for {
 		input := bufio.NewScanner(socket)
 
@@ -96,10 +136,8 @@ func (mg *ConnManager) serverReader(socket net.Conn) {
 			incomingInput := input.Text()
 
 			if incomingInput[0:3] == string(RDY) {
-				log.Println("ConnManager>> Received one RDY")
-				mg.mutex.Lock()
-				mg.nbRdyChildren++
-				mg.mutex.Unlock()
+				log.Println("ConnManager>> Received one RDY : " + incomingInput)
+				mg.RdyCh <- struct{}{}
 
 			} else if incomingInput[0:4] == string(STRT) {
 				log.Println("ConnManager>> Received STRT, propagating to all children")
@@ -155,6 +193,7 @@ func (mg *ConnManager) serverReader(socket net.Conn) {
 func (mg *ConnManager) ConnectAllSiblings() {
 	// Gets number of siblings
 	nbSiblings := len(config.Servers[mg.Id].Siblings)
+	go mg.rdyCounter()
 
 	// Connects to all siblings
 	for i := 0; i < nbSiblings; i++ {
@@ -166,6 +205,7 @@ func (mg *ConnManager) ConnectAllSiblings() {
 			if err == nil {
 				utils.WriteLn(conn, string(SRV))
 				mg.Conns[srvToConnect] = conn
+				log.Println("ConnManager>> Connected Dial to " + strconv.Itoa(config.Servers[srvToConnect].Port))
 				break
 			}
 		}
@@ -174,39 +214,23 @@ func (mg *ConnManager) ConnectAllSiblings() {
 	// Log
 	log.Println("ConnManager>> Connected to all siblings")
 
-	// Waits to send RDY or STRT
-	mg.checkAllReady()
+	// Waits for all siblings to send RDY or STRT
+	for range mg.WaitForAllRdy {
+		break
+	}
+	log.Println("ConnManager>> RDY from all children")
+	mg.sendRdyOrStrt()
 }
 
-// checkAllReady handles the RDY messages from the childen
-func (mg *ConnManager) checkAllReady() {
-	// Gets number of siblings
-	nbSiblingsToWait := len(config.Servers[mg.Id].Siblings)-1
+func (mg *ConnManager) sendRdyOrStrt() {
 	parent := config.Servers[mg.Id].Parent
-
-	//log.Print("should wait for : ")
-	//log.Println(nbSiblingsToWait)
-
-	// If not root, doesn't count the parent sibling
-	if parent != -1 {
-		nbSiblingsToWait -= 1
-	}
-
-	// Sends RDY message to parent if all siblings are connected and all children responded with RDY
-	for {
-		mg.mutex.Lock()
-		if mg.nbRdyChildren >= nbSiblingsToWait {
-			mg.mutex.Unlock()
-			break
-		}
-		mg.mutex.Unlock()
-	}
-
-	// Sends RDY to parent or sends STRT if ROOT
 	if parent != -1 {
 		// Sends RDY to parent
 		log.Println("ConnManager>> All children ready, sending ready to parent " + strconv.Itoa(parent))
-		utils.WriteLn(mg.Conns[parent], string(RDY))
+		// BUGFIX FOR INTERCONNEXION PROBLEM
+		//log.Println("ConnManagerConnManagerConnManagerConnManagerConnManager>> Sleeping for " + strconv.Itoa(mg.Id*100) + " ms before sending RDY")
+		//time.Sleep(time.Duration(mg.Id*100) * time.Millisecond)
+		utils.WriteLn(mg.Conns[parent], string(RDY)+strconv.Itoa(mg.Id))
 	} else {
 		log.Println("ConnManager>> ROOT sending start to all children")
 		mg.SendAllChildren(string(STRT))
@@ -215,6 +239,48 @@ func (mg *ConnManager) checkAllReady() {
 		mg.canAcceptClients = true
 		log.Println("SERVER>> Server now ready to accept clients requests")
 	}
+}
+
+// checkAllReady handles the RDY messages from the childen
+func (mg *ConnManager) checkAllReady() {
+
+	// Gets number of siblings
+	nbSiblingsToWait := len(config.Servers[mg.Id].Siblings)
+	parent := config.Servers[mg.Id].Parent
+
+	// If not root, doesn't count the parent sibling
+	if parent != -1 {
+		nbSiblingsToWait -= 1
+	}
+
+	log.Println("should receive" + strconv.Itoa(nbSiblingsToWait))
+	if nbSiblingsToWait != 0 {
+		for range mg.RdyCh {
+			log.Println("received RDY")
+			mg.nbRdyChildren++
+			log.Println(strconv.Itoa(mg.nbRdyChildren))
+
+			// Sends RDY message to parent if all siblings are connected and all children responded with RDY
+			if mg.nbRdyChildren >= nbSiblingsToWait {
+				break
+			}
+		}
+	}
+
+	// Sends RDY to parent or sends STRT if ROOT
+	if parent != -1 {
+		// Sends RDY to parent
+		log.Println("ConnManager>> All children ready, sending ready to parent " + strconv.Itoa(parent))
+		utils.WriteLn(mg.Conns[parent], string(RDY)+strconv.Itoa(mg.Id))
+	} else {
+		log.Println("ConnManager>> ROOT sending start to all children")
+		mg.SendAllChildren(string(STRT))
+
+		// Root can start too
+		mg.canAcceptClients = true
+		log.Println("SERVER>> Server now ready to accept clients requests")
+	}
+	mg.WaitForAllRdy <- struct{}{}
 }
 
 // SendAllSiblings Sends a textual message to all siblings of the server
@@ -234,12 +300,20 @@ func (mg *ConnManager) SendAllSiblingsExcept(exceptId int, msg string) {
 
 // SendAllChildren Sends a textual message to all children of the server
 func (mg *ConnManager) SendAllChildren(msg string) {
+	//for mg.ready != len(config.Servers[mg.Id].Siblings) {
+	//
+	//}
 	parent := config.Servers[mg.Id].Parent
 	for id, conn := range mg.Conns {
 		if parent != id {
 			utils.WriteLn(conn, msg)
 		}
 	}
+}
+
+func (mg *ConnManager) SendToParent(msg string) {
+	parent := config.Servers[mg.Id].Parent
+	utils.WriteLn(mg.Conns[parent], msg)
 }
 
 // SendTo Sends a textual payload to a given server

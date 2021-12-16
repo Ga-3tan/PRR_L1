@@ -35,6 +35,8 @@ func Start(srvId int, hotel *logic.Hotel) {
 		CmdSyncCh:          commandsSyncChan,
 		MutexConnManagerCh: mutexConnManagerCh,
 		WaitSyncCh:         waitSyncCh,
+		WaitForAllRdy:      make(chan struct{}, 100),
+		RdyCh:              make(chan struct{}, 100),
 	}
 
 	// Mutex manager, implements Lamport algorithm for distributed operations on the hotel
