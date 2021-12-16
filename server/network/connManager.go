@@ -10,6 +10,7 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"time"
 )
 
 // ConnManager One of the three main components of the program, represents the network bloc
@@ -195,6 +196,11 @@ func (mg *ConnManager) checkAllReady() {
 	if parent != -1 {
 		// Sends RDY to parent
 		log.Println("ConnManager>> All children ready, sending ready to parent " + strconv.Itoa(parent))
+
+		// BUGFIX FOR INTERCONNEXION PROBLEM
+		log.Println("ConnManager>> Sleeping for " + strconv.Itoa(mg.Id*100) + " ms before sending RDY")
+		time.Sleep(time.Duration(mg.Id*100) * time.Millisecond)
+
 		utils.WriteLn(mg.Conns[parent], string(RDY))
 	} else {
 		log.Println("ConnManager>> ROOT sending start to all children")

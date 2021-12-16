@@ -1,4 +1,4 @@
-# PRR | Laboratoire 2 - Réservation de chambres d'hôtel
+# PRR | Laboratoire 3 - Réservation de chambres d'hôtel
 
 ## Installation
 
