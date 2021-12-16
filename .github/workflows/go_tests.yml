@@ -20,5 +20,7 @@ jobs:
       run: go run ./server/main.go 1 &
     - name: startSrv2
       run: go run ./server/main.go 2 &
+    - name: startSrv2
+      run: go run ./server/main.go 3 &
     - name: Test
       run: go test -v ./client
