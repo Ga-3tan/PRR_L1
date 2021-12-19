@@ -340,7 +340,7 @@ server 2
 server 3
 ```
 
-![](G:\1%20-%20OneDrive\OneDrive\Documents\2%20-%20HEIG-VD\PRR\Labos\LAB00XProgrammeGo\PRR_LAB_Reservation_Hotel\md-img\2021-12-19-11-41-13-image.png)
+![](./md-img/2021-12-19-11-41-13-image.png)
 
 **3 - Provoquer l'accès concurrent**
 
@@ -354,7 +354,7 @@ BOOK 1 2 3
 
 > Cette commande demande la réservation de la chambre 1 depuis le jour 2 pendant 3 nuits
 
-![](G:\1%20-%20OneDrive\OneDrive\Documents\2%20-%20HEIG-VD\PRR\Labos\LAB00XProgrammeGo\PRR_LAB_Reservation_Hotel\md-img\2021-12-19-11-42-08-image.png)
+![](./md-img/2021-12-19-11-42-08-image.png)
 
 **4 - Résultat de la manipulation**
 
@@ -362,7 +362,7 @@ BOOK 1 2 3
 
 -> L'un des clients aura donc obtenu la réservation et l'autre recevra un message de refus, l'accès concurrent aura été provoqué et correctement géré par l'algorithme de Raymond afin que l'état de l'hôtel soit le même sur tous les serveurs.
 
-![](G:\1%20-%20OneDrive\OneDrive\Documents\2%20-%20HEIG-VD\PRR\Labos\LAB00XProgrammeGo\PRR_LAB_Reservation_Hotel\md-img\2021-12-19-11-42-51-image.png)
+![](./md-img/2021-12-19-11-42-51-image.png)
 
 Le log des serveurs permet de suivre l'exécution de l'algorithme de Raymond ainsi que la connexion entre les différents noeud. Les accès à la section critique et les synchronisation de commandes sont mises en évidence.
 
