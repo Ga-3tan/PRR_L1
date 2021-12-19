@@ -14,8 +14,8 @@ Le code est ensuite divisé dans divers packets qui séparent les différents as
 - Les paquets `utils` et `config` contiennent du code utilisé par les deux programmes 
 - Le packet `logic` regroupe tout ce qui touche à la logique de réservation de chambres de l'hôtel
 - Le paquet `cmd` contient tout ce qui touche aux commandes utilisateur (**Manager de commandes**)
-- Le paquet `lamport` contient l'implémentation de l'algorithme de Lamport pour l'exclusion mutuelle du pool de serveurs réparti (**Manager du mutex**)
-- Le paquet `lamport` contient toute la logique d'interconnexion des serveurs comprennant la réception et l'envoi de messages sur les sockets réseau (**Manager du réseau**)
+- Le paquet `raymond` contient l'implémentation de l'algorithme de Raymond pour l'exclusion mutuelle du pool de serveurs réparti (**Manager du mutex**)
+- Le paquet `network` contient toute la logique d'interconnexion des serveurs comprennant la réception et l'envoi de messages sur les sockets réseau (**Manager du réseau**)
 
 Plus d'information disponible en générant une documentation grâce à l'utilitaire `godoc`
 
@@ -25,7 +25,7 @@ Plus d'information disponible en générant une documentation grâce à l'utilit
 
 - Le bloc `Processus Client` correspond au paquet `serverTcp`
 
-- Le bloc `Processus Mutex` correspond au paquet `lamport`
+- Le bloc `Processus Mutex` correspond au paquet `raymond`
 
 - Le bloc `Processus Réseau` correspond au paquet `network`
 
@@ -75,7 +75,7 @@ Un fichier `client` sera crée et pourra être lancé dans un terminal.
 
 Maintenant que les deux programes ont été build, il est possible de les lancer dans plusieurs terminaux de commande.
 
-Initialement, le fichier de configuration `config/config.go` demande le lancement de **trois serveurs** de numéros 0, 1 et 2. Les clients peuvent être lancés sans limite. Ce fichier de configuration peut être modifié à volonté, tant qu'il reste valide.
+Initialement, le fichier de configuration `config/config.go` demande le lancement de **quatre serveurs** de numéros 0, 1, 2 et 3. Les clients peuvent être lancés sans limite. Ce fichier de configuration peut être modifié à volonté, tant qu'il reste valide.
 
 > Au lancement, un serveur prend un numéro en argument de programme
 
@@ -120,6 +120,14 @@ Ces valeurs sont modifiables dans le fichier `config.go` qui se trouve dans le d
 - Interconnexion du pool de serveurs
 - Connexion d'un client sur n'importe quel serveur
 - Gestion de la concurrence du système distribué avec l'algorithme de Lamport
+
+**Nouveautés du troisième laboratoire**
+
+- Interconnexion de la topologie de serveurs
+
+- Attente que tous les serveurs soient prêts avec les commandes RDY et STRT
+
+- Gestion de la concurrence du système distribué avec l'algorithme de Raymond
 
 ## Protocole
 
@@ -173,17 +181,7 @@ Après synchronisation d'une commande externe, un serveur répond à l'émetteur
 SYOK [FromId] [DestId]
 ```
 
-Le serveur ayant lancé la commande de synchronisation va donc reçevoir une confirmation de tous les autres serveurs et pourra ensuite libérer la section critique en continuant l'exécution de l'algorithme de Lamport.
-
-##### Lamport
-
-**Message de Lamport**
-
-```css
-LPRT [MESSAGE]
-```
-
-> [MESSAGE] -> La commande avec son estampille et l'id de l'émetteur(ex. REQ 3 0)
+Le serveur ayant lancé la commande de synchronisation va donc reçevoir une confirmation de tous les autres serveurs et pourra ensuite libérer la section critique en continuant l'exécution de l'algorithme de Raymond.
 
 ##### Raymond
 
@@ -213,7 +211,7 @@ Envoyé par la racine à ses enfants
 Chaque nœud va le renvoyer à ses enfants pour se dire qu'il est prêt
 
 ```css
-SRT
+STRT
 ```
 
 ## Commandes client
@@ -280,86 +278,11 @@ FREE 5 2
 OK chambre 1 disponible
 ```
 
-## Guide pour provoquer un accès concurrent (version Lamport)
-
-### Description
-
-Ce guide détaille les étapes pour provoquer un accès concurrent lors d'un envoi de la même commande depuis plusieurs clients vers plusieurs serveurs différents du pool. Cela permet de vérifier le bon fonctionnement de la gestion de la concurrence.
-
-Lorsqu'il est en mode `debug`, le serveur démarre et accepte les nouvelles connexions client. Le contexte s'occupant du traitement des requêtes se met en pause pendant X secondes afin de laisser le temps à la création d'un accès concurrent.
-
-Pour ce test, le pool contient **trois serveurs (0, 1 et 2)** interconnectés et **deux clients** effectuant la même requete `BOOK 1 2 3` en même temps vers les serveurs 1 et 2.
-
-### Etapes
-
-**1 - Activer le mode `debug`**
-
--> Ouvrir le fichier `config.go`se trouvant dans le dossier `hôtel/config`
-
--> Modifier le champ `DEBUG` en lui affectant la valeur 1 :
-
-```go
-DEBUG = 1
-```
-
--> Modifier si nécessaire le temps de "sommeil" du serveur au démarrage. Ce temps de sommeil sera le temps pour lancer les deux clients et écrire les deux requêtes. (temps conseillé 45s-60s)
-
-```go
-DEBUG_SLEEP = X // Remplacer X par le nombre de secondes à attendre
-```
-
-<img src="md-img/2021-11-28-09-30-40-image.png" title="" alt="" data-align="center">
-
-**2 - Préparer plusieurs terminaux de commande**
-
--> Ouvrir 5 terminaux de commande et les placer côte à côte
-
--> Démarrer deux instances de clients se connectant aux serveurs 1 et 2
-
-```bash
-client 1
-client 2
-```
-
--> Démarrer trois instances de serveurs
-
-> ATTENTION /!\ Au démarrage du dernier serveur, le pool va se connecter et vous aurez X secondes pour provoquer l'accès concurrent !
-
-```bash
-server 0
-server 1
-server 2
-```
-
-<img src="md-img/2021-11-28-09-29-48-image.png" title="" alt="" data-align="center">
-
-**3 - Provoquer l'accès concurrent**
-
--> Dès que le serveur est lancé, entrer deux noms de différents sur chaque client
-
--> Envoyer la requête suivante depuis les deux clients
-
-```sh
-BOOK 1 2 3
-```
-
-> Cette commande demande la réservation de la chambre 1 depuis le jour 2 pendant 3 nuits
-
-<img src="md-img/2021-11-28-09-34-54-image.png" title="" alt="" data-align="center">
-
-**4 - Résultat de la manipulation**
-
--> A ce moment, les deux clients vont se bloquer jusqu'à ce que les serveur terminent ensemble les X secondes d'attente. Ils vont ensuite traîter les deux commandes et envoyer les retours aux clients.
-
--> L'un des clients aura donc obtenu la réservation et l'autre reçevra un message de refus, l'accès concurent aura été provoqué et  correctement géré par l'algorithme de Lamport afin que l'état de l'hotel soit le même sur tous les serveurs.
-
-<img title="" src="md-img/2021-11-28-09-35-35-image.png" alt="" data-align="center">
-
-Le log des serveurs permet de suivre l'exécution de l'algorithme de Lamport. Les accès à la section critique et les synchronisation de commandes sont mises en évidence.
-
 ## Guide pour provoquer un accès concurrent (version Raymond)
 
-> note importante : pour une raison obscure il se peut que le système se bloque lors de l'initialisation des serveurs. Cela occure lorsque les serveur 1 et 2 envoie leur RDY en même temps à 0. Cela est dû à un des RDY qui se perd (oui oui on arrive à perdre des messages en TCP, #magieNoire). Nous avons trouvé une sorte de "fix" en introduisant un sleep (différent entre chaque serveur) juste avant l'envoi d'un RDY.
+> **Note importante**
+> 
+> Pour une raison obscure il se peut que le système se bloque lors de l'initialisation des serveurs. Cela intervient lorsque les serveur 1 et 2 envoient leur RDY en même temps à 0. Cela est dû à un des RDY qui se perd (oui oui on arrive à perdre des messages en TCP, #magieNoire). Nous avons trouvé une sorte de "fix" en introduisant un sleep (différent entre chaque serveur) juste avant l'envoi d'un RDY. Ce problème a été discuté avec l'enseignant et ce fix a été gardé après de longues tentatives pour résoudre le problème.
 
 ### Description
 
@@ -372,6 +295,8 @@ Pour ce test, le pool contient **quatre serveurs (0, 1, 2 et 3)** interconnecté
 <img src="md-img/topo.png" alt="img" style="zoom: 25%;" />
 
  Ainsi que **deux clients** effectuant la même requete `BOOK 1 2 3` en même temps vers les serveurs 2 et 3.
+
+Le serveur 0 possède le token au démarrage.
 
 ### Etapes
 
@@ -415,7 +340,7 @@ server 2
 server 3
 ```
 
-[insert photo]
+![](G:\1%20-%20OneDrive\OneDrive\Documents\2%20-%20HEIG-VD\PRR\Labos\LAB00XProgrammeGo\PRR_LAB_Reservation_Hotel\md-img\2021-12-19-11-41-13-image.png)
 
 **3 - Provoquer l'accès concurrent**
 
@@ -429,7 +354,7 @@ BOOK 1 2 3
 
 > Cette commande demande la réservation de la chambre 1 depuis le jour 2 pendant 3 nuits
 
-[insert photo]
+![](G:\1%20-%20OneDrive\OneDrive\Documents\2%20-%20HEIG-VD\PRR\Labos\LAB00XProgrammeGo\PRR_LAB_Reservation_Hotel\md-img\2021-12-19-11-42-08-image.png)
 
 **4 - Résultat de la manipulation**
 
@@ -437,7 +362,7 @@ BOOK 1 2 3
 
 -> L'un des clients aura donc obtenu la réservation et l'autre recevra un message de refus, l'accès concurrent aura été provoqué et correctement géré par l'algorithme de Raymond afin que l'état de l'hôtel soit le même sur tous les serveurs.
 
-[insert photo]
+![](G:\1%20-%20OneDrive\OneDrive\Documents\2%20-%20HEIG-VD\PRR\Labos\LAB00XProgrammeGo\PRR_LAB_Reservation_Hotel\md-img\2021-12-19-11-42-51-image.png)
 
 Le log des serveurs permet de suivre l'exécution de l'algorithme de Raymond ainsi que la connexion entre les différents noeud. Les accès à la section critique et les synchronisation de commandes sont mises en évidence.
 
